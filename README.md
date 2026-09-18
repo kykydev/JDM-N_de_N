@@ -55,6 +55,7 @@ en Python 3 avec la bibliothèque standard seulement.
 | `data/corpus/clean/` | corpus découpé (A, B, split, définitude, ambiguïté) et `termes.csv` | corpus_check.py |
 | `data/corpus/variants/` | corpus avec variantes de déterminant, même format que `raw/` | corpus_variants.py |
 | `data/corpus/variants_clean/` | équivalent de `clean/` pour les variantes | corpus_check.py |
+| `data/jdm_relations_types.csv` | référence des types de relations JDM (id, nom, description), copiée de la page « détails des relations » de JDM. | manuel |
 | `data/cache/jdm/` | réponses brutes de l'API, une par requête | jdm_client.py |
 | `reports/` | rapports Markdown de chaque étape | tous les scripts |
 
