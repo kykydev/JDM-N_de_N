@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/colis", "params": []}, "status": "ok", "elapsed_s": 0.0295, "bytes": 144, "data": {"id": 120828, "name": "colis", "type": 1, "w": 1544, "c": 0, "level": 48.8434, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T12:17:50"}}

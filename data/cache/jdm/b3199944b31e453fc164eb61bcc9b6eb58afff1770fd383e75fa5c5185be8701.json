@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_id/16644", "params": []}, "status": "ok", "elapsed_s": 0.0333, "bytes": 148, "data": {"id": 16644, "name": "astronomie", "type": 1, "w": 5535, "c": 0, "level": 47.5876, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-16T12:09:30"}}

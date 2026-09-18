@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/bateau", "params": []}, "status": "ok", "elapsed_s": 0.0367, "bytes": 146, "data": {"id": 107150, "name": "bateau", "type": 1, "w": 11031, "c": 0, "level": 50.2901, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-16T14:31:04"}}

@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/animaux", "params": []}, "status": "ok", "elapsed_s": 0.032, "bytes": 145, "data": {"id": 71539, "name": "animaux", "type": 1, "w": 9278, "c": 0, "level": 51.2938, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T10:53:56"}}

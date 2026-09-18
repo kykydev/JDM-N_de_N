@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/le%C3%A7on", "params": []}, "status": "ok", "elapsed_s": 0.0434, "bytes": 144, "data": {"id": 20425, "name": "leçon", "type": 1, "w": 3107, "c": 0, "level": 46.4437, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T02:47:27"}}

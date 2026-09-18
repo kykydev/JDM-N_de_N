@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/phares", "params": []}, "status": "ok", "elapsed_s": 0.0386, "bytes": 143, "data": {"id": 31610, "name": "phares", "type": 1, "w": 230, "c": 0, "level": 44.0306, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-08-24T09:26:37"}}

@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_id/17573", "params": []}, "status": "ok", "elapsed_s": 0.0388, "bytes": 152, "data": {"id": 17573, "name": "circonscription", "type": 1, "w": 4016, "c": 0, "level": 50.459, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-15T10:55:06"}}

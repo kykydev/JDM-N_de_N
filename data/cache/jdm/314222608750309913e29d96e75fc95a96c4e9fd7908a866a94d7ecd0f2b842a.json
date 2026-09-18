@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/plantes", "params": []}, "status": "ok", "elapsed_s": 0.3814, "bytes": 146, "data": {"id": 136076, "name": "plantes", "type": 1, "w": 6877, "c": 0, "level": 49.9244, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T01:54:12"}}

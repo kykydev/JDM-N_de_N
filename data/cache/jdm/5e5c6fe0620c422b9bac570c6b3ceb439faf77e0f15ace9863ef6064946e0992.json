@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/distillation", "params": []}, "status": "ok", "elapsed_s": 0.0339, "bytes": 147, "data": {"id": 64985, "name": "distillation", "type": 1, "w": 320, "c": 0, "level": 199.0, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-16T18:24:29"}}

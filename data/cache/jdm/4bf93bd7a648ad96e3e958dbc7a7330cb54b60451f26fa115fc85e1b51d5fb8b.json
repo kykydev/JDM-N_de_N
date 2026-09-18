@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_id/8957302", "params": []}, "status": "ok", "elapsed_s": 0.0405, "bytes": 152, "data": {"id": 8957302, "name": "objet matériel", "type": 1, "w": 295, "c": 0, "level": 200.0, "infoid": null, "creationdate": "2017-09-24", "touchdate": "2026-09-13T11:58:25"}}

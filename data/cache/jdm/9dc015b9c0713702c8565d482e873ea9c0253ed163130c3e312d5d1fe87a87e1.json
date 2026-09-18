@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/cave", "params": []}, "status": "ok", "elapsed_s": 0.0512, "bytes": 143, "data": {"id": 104756, "name": "cave", "type": 1, "w": 1300, "c": 0, "level": 79.2876, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-13T15:26:47"}}

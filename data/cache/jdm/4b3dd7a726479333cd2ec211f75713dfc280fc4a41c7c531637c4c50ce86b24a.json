@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/Ivoire", "params": []}, "status": "ok", "elapsed_s": 0.0274, "bytes": 142, "data": {"id": 173190, "name": "Ivoire", "type": 1, "w": 303, "c": 0, "level": 200.0, "infoid": null, "creationdate": "2009-06-16", "touchdate": "2026-09-03T18:41:07"}}

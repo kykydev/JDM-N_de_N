@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/pain", "params": []}, "status": "ok", "elapsed_s": 0.0671, "bytes": 142, "data": {"id": 61283, "name": "pain", "type": 1, "w": 6207, "c": 0, "level": 49.8816, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T11:22:30"}}

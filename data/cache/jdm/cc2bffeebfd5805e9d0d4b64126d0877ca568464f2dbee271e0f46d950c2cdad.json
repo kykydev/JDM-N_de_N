@@ -1,1 +1,0 @@
-{"request": {"path": "/node_by_name/extraction", "params": []}, "status": "ok", "elapsed_s": 0.0639, "bytes": 148, "data": {"id": 45296, "name": "extraction", "type": 1, "w": 2392, "c": 0, "level": 43.2746, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T11:44:57"}}

@@ -1,0 +1,14 @@
+# Cache des réponses de l'API JeuxDeMots (≈ 1 Go après une passe complète, régénérable)
+data/cache/
+
+# Journal des appels réseau
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
