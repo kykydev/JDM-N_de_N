@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/Bath", "params": []}, "status": "ok", "elapsed_s": 0.0776, "bytes": 139, "data": {"id": 142441, "name": "Bath", "type": 1, "w": 94, "c": 0, "level": 200.0, "infoid": null, "creationdate": "2007-06-28", "touchdate": "2026-09-03T18:40:19"}}

@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/d%C3%A9put%C3%A9s", "params": []}, "status": "ok", "elapsed_s": 0.0385, "bytes": 148, "data": {"id": 146850, "name": "députés", "type": 1, "w": 7114, "c": 0, "level": 37.6819, "infoid": null, "creationdate": "2007-07-01", "touchdate": "2026-09-18T00:05:12"}}

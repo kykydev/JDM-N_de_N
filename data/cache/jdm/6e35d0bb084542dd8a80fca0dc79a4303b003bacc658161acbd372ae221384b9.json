@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/arbitrage", "params": []}, "status": "ok", "elapsed_s": 0.0373, "bytes": 148, "data": {"id": 124373, "name": "arbitrage", "type": 1, "w": 2016, "c": 0, "level": 49.9247, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T04:37:15"}}

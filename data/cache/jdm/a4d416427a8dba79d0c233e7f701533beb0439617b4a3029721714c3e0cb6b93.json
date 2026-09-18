@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_id/103255", "params": []}, "status": "ok", "elapsed_s": 0.0346, "bytes": 145, "data": {"id": 103255, "name": "breuvage", "type": 1, "w": 199, "c": 0, "level": 51.756, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-15T10:41:25"}}

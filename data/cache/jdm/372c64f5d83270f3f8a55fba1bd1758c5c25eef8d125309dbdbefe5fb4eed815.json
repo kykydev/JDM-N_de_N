@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_id/87150", "params": []}, "status": "ok", "elapsed_s": 0.0431, "bytes": 154, "data": {"id": 87150, "name": "caractéristique", "type": 1, "w": 6785, "c": 0, "level": 43.6782, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-17T09:24:51"}}

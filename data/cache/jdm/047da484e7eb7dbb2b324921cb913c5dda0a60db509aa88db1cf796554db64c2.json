@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/maison", "params": []}, "status": "ok", "elapsed_s": 0.0418, "bytes": 145, "data": {"id": 45179, "name": "maison", "type": 1, "w": 43192, "c": 0, "level": 70.9071, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T10:25:56"}}

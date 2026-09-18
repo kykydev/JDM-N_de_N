@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_id/87855", "params": []}, "status": "ok", "elapsed_s": 0.0364, "bytes": 149, "data": {"id": 87855, "name": "institution", "type": 1, "w": 10318, "c": 0, "level": 40.992, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T02:40:54"}}

@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/diamants", "params": []}, "status": "ok", "elapsed_s": 0.0271, "bytes": 146, "data": {"id": 154067, "name": "diamants", "type": 1, "w": 207, "c": 0, "level": 55.6225, "infoid": null, "creationdate": "2007-12-31", "touchdate": "2026-09-03T22:14:51"}}

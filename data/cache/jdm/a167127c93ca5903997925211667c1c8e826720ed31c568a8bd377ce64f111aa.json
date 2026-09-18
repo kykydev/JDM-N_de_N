@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_id/70527", "params": []}, "status": "ok", "elapsed_s": 0.0373, "bytes": 146, "data": {"id": 70527, "name": "musique", "type": 1, "w": 36928, "c": 0, "level": 58.7341, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T04:31:59"}}

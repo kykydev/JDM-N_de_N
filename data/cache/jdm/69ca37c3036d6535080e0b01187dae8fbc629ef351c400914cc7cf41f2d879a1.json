@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/Arabie", "params": []}, "status": "ok", "elapsed_s": 0.04, "bytes": 144, "data": {"id": 63453, "name": "Arabie", "type": 1, "w": 1829, "c": 0, "level": 54.7025, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-03T18:40:17"}}

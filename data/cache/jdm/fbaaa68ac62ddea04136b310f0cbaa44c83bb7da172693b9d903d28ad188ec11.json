@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/voiture", "params": []}, "status": "ok", "elapsed_s": 0.0349, "bytes": 145, "data": {"id": 6890, "name": "voiture", "type": 1, "w": 23063, "c": 0, "level": 59.4812, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T11:59:50"}}

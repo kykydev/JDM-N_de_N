@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/ferrage", "params": []}, "status": "ok", "elapsed_s": 0.0417, "bytes": 143, "data": {"id": 77747, "name": "ferrage", "type": 1, "w": 72, "c": 0, "level": 58.2832, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-08-28T22:35:37"}}

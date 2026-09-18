@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/pompiers", "params": []}, "status": "ok", "elapsed_s": 0.0391, "bytes": 146, "data": {"id": 15478, "name": "pompiers", "type": 1, "w": 1385, "c": 0, "level": 47.9778, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-13T09:19:42"}}

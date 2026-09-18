@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/Bresse", "params": []}, "status": "ok", "elapsed_s": 0.0366, "bytes": 143, "data": {"id": 130971, "name": "Bresse", "type": 1, "w": 71, "c": 0, "level": 45.4475, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-08-26T15:33:00"}}

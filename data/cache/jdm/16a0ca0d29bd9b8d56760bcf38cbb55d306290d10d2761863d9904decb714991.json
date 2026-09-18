@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/Argentine", "params": []}, "status": "ok", "elapsed_s": 0.025, "bytes": 147, "data": {"id": 12153, "name": "Argentine", "type": 1, "w": 4224, "c": 0, "level": 41.4231, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-12T13:31:53"}}

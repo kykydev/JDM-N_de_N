@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/Mont-Blanc", "params": []}, "status": "ok", "elapsed_s": 0.0361, "bytes": 146, "data": {"id": 144482, "name": "Mont-Blanc", "type": 1, "w": 187, "c": 0, "level": 199.0, "infoid": null, "creationdate": "2007-06-28", "touchdate": "2026-08-26T08:45:14"}}

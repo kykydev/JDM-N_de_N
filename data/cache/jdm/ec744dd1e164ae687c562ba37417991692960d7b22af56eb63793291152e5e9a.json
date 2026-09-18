@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/New%20York", "params": []}, "status": "ok", "elapsed_s": 0.0624, "bytes": 147, "data": {"id": 120673, "name": "New York", "type": 1, "w": 3614, "c": 0, "level": 38.3229, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-08T16:38:22"}}

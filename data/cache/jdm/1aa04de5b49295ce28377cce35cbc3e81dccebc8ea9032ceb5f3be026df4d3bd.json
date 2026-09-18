@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/cacao", "params": []}, "status": "ok", "elapsed_s": 0.0356, "bytes": 143, "data": {"id": 68363, "name": "cacao", "type": 1, "w": 1184, "c": 0, "level": 75.8193, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-18T11:34:19"}}

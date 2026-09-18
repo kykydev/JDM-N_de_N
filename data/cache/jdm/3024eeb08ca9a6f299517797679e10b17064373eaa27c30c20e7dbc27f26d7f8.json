@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_id/139768", "params": []}, "status": "ok", "elapsed_s": 0.0373, "bytes": 146, "data": {"id": 139768, "name": "artéfact", "type": 1, "w": 188, "c": 0, "level": 52.114, "infoid": null, "creationdate": "2007-06-28", "touchdate": "2026-09-18T11:57:22"}}

@@ -1,0 +1,1 @@
+{"request": {"path": "/node_by_name/rosiers", "params": []}, "status": "ok", "elapsed_s": 0.058, "bytes": 143, "data": {"id": 129899, "name": "rosiers", "type": 1, "w": 104, "c": 0, "level": 200.0, "infoid": null, "creationdate": "2007-06-21", "touchdate": "2026-09-03T22:19:44"}}
