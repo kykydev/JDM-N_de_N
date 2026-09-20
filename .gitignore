@@ -12,3 +12,9 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Intermédiaires régénérables du balayage : grasp.py et classify.py les recréent
+# en une vingtaine de secondes. Seuls modele_final.json et les résultats du test
+# sont conservés.
+data/modeles/regles_fusionnees_*.json
+data/resultats/calibrage_*.json

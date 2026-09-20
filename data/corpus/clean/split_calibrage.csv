@@ -1,0 +1,751 @@
+syntagme,A,B,relation,sous_split
+peinture d'une cathédrale,peinture,cathédrale,r_depict,apprentissage
+dessin d'un cheval,dessin,cheval,r_depict,apprentissage
+croquis d'une main,croquis,main,r_depict,apprentissage
+statue d'un lion,statue,lion,r_depict,apprentissage
+buste d'un empereur,buste,empereur,r_depict,apprentissage
+gravure d'un navire,gravure,navire,r_depict,apprentissage
+fresque d'une bataille,fresque,bataille,r_depict,apprentissage
+esquisse d'un visage,esquisse,visage,r_depict,apprentissage
+caricature d'un député,caricature,député,r_depict,apprentissage
+plan d'un appartement,plan,appartement,r_depict,apprentissage
+carte d'une région,carte,région,r_depict,apprentissage
+schéma d'un moteur,schéma,moteur,r_depict,apprentissage
+diagramme d'un circuit,diagramme,circuit,r_depict,apprentissage
+illustration d'un conte,illustration,conte,r_depict,apprentissage
+photographie d'un glacier,photographie,glacier,r_depict,apprentissage
+vidéo d'un accident,vidéo,accident,r_depict,apprentissage
+enregistrement d'un discours,enregistrement,discours,r_depict,apprentissage
+film d'une cérémonie,film,cérémonie,r_depict,apprentissage
+sculpture d'une danseuse,sculpture,danseuse,r_depict,apprentissage
+mosaïque d'une déesse,mosaïque,déesse,r_depict,apprentissage
+icône d'une vierge,icône,vierge,r_depict,apprentissage
+effigie d'un roi,effigie,roi,r_depict,apprentissage
+médaillon d'un enfant,médaillon,enfant,r_depict,apprentissage
+silhouette de la ville,silhouette,ville,r_depict,apprentissage
+pastel d'une falaise,pastel,falaise,r_depict,apprentissage
+fusain d'un arbre,fusain,arbre,r_depict,apprentissage
+miniature d'une caravelle,miniature,caravelle,r_depict,apprentissage
+bas-relief d'une procession,bas-relief,procession,r_depict,apprentissage
+moulage d'un crâne,moulage,crâne,r_depict,apprentissage
+estampe d'une vague,estampe,vague,r_depict,apprentissage
+radiographie d'une épaule,radiographie,épaule,r_depict,apprentissage
+échographie d'un fœtus,échographie,fœtus,r_depict,apprentissage
+scanner du genou,scanner,genou,r_depict,apprentissage
+cliché d'une éclipse,cliché,éclipse,r_depict,apprentissage
+tableau d'une tempête,tableau,tempête,r_depict,apprentissage
+figurine d'un soldat,figurine,soldat,r_depict,apprentissage
+totem d'un aigle,totem,aigle,r_depict,apprentissage
+blason d'une famille,blason,famille,r_depict,apprentissage
+timbre d'une locomotive,timbre,locomotive,r_depict,apprentissage
+tapisserie d'une chasse,tapisserie,chasse,r_depict,apprentissage
+photo d'un mariage,photo,mariage,r_depict,calibrage
+portrait d'une reine,portrait,reine,r_depict,calibrage
+aquarelle d'un jardin,aquarelle,jardin,r_depict,calibrage
+maquette d'un stade,maquette,stade,r_depict,calibrage
+vignette d'une scène,vignette,scène,r_depict,calibrage
+vitrail d'un saint,vitrail,saint,r_depict,calibrage
+toile d'un port,toile,port,r_depict,calibrage
+reconstitution d'un dinosaure,reconstitution,dinosaure,r_depict,calibrage
+marionnette d'un dragon,marionnette,dragon,r_depict,calibrage
+masque d'un démon,masque,démon,r_depict,calibrage
+dégâts de l'inondation,dégâts,inondation,r_has_causatif,apprentissage
+larmes de joie,larmes,joie,r_has_causatif,apprentissage
+séquelles de l'accident,séquelles,accident,r_has_causatif,apprentissage
+décombres du séisme,décombres,séisme,r_has_causatif,apprentissage
+cris de douleur,cris,douleur,r_has_causatif,apprentissage
+fatigue du voyage,fatigue,voyage,r_has_causatif,apprentissage
+cloques de la brûlure,cloques,brûlure,r_has_causatif,apprentissage
+perturbations de la grève,perturbations,grève,r_has_causatif,apprentissage
+ivresse du champagne,ivresse,champagne,r_has_causatif,apprentissage
+symptômes de la grippe,symptômes,grippe,r_has_causatif,apprentissage
+taches de peinture,taches,peinture,r_has_causatif,apprentissage
+ravages de la guerre,ravages,guerre,r_has_causatif,apprentissage
+frissons de froid,frissons,froid,r_has_causatif,apprentissage
+stress des examens,stress,examens,r_has_causatif,apprentissage
+bénéfices de la vente,bénéfices,vente,r_has_causatif,apprentissage
+rougeur de honte,rougeur,honte,r_has_causatif,apprentissage
+inondations de la mousson,inondations,mousson,r_has_causatif,apprentissage
+chagrin de la rupture,chagrin,rupture,r_has_causatif,apprentissage
+acouphènes du concert,acouphènes,concert,r_has_causatif,apprentissage
+traces de pneus,traces,pneus,r_has_causatif,apprentissage
+souffle de l'explosion,souffle,explosion,r_has_causatif,apprentissage
+sueur de l'effort,sueur,effort,r_has_causatif,apprentissage
+hallucinations de la fièvre,hallucinations,fièvre,r_has_causatif,apprentissage
+désordre de la fête,désordre,fête,r_has_causatif,apprentissage
+euphorie du succès,euphorie,succès,r_has_causatif,apprentissage
+poussière des travaux,poussière,travaux,r_has_causatif,apprentissage
+obésité de la malbouffe,obésité,malbouffe,r_has_causatif,apprentissage
+émeutes de la faim,émeutes,faim,r_has_causatif,apprentissage
+hématome du choc,hématome,choc,r_has_causatif,apprentissage
+avaries de la tempête,avaries,tempête,r_has_causatif,apprentissage
+rides de l'âge,rides,âge,r_has_causatif,apprentissage
+bleus de la bagarre,bleus,bagarre,r_has_causatif,apprentissage
+incendies de la sécheresse,incendies,sécheresse,r_has_causatif,apprentissage
+épuisement du surmenage,épuisement,surmenage,r_has_causatif,apprentissage
+résultats de l'expérience,résultats,expérience,r_has_causatif,apprentissage
+odeurs de la cuisson,odeurs,cuisson,r_has_causatif,apprentissage
+pertes du krach,pertes,krach,r_has_causatif,apprentissage
+amertume de la défaite,amertume,défaite,r_has_causatif,apprentissage
+flaques de la pluie,flaques,pluie,r_has_causatif,apprentissage
+somnolence de l'anesthésie,somnolence,anesthésie,r_has_causatif,apprentissage
+courbatures de l'entraînement,courbatures,entraînement,r_has_causatif,calibrage
+cendres de l'incendie,cendres,incendie,r_has_causatif,calibrage
+fractures de la chute,fractures,chute,r_has_causatif,calibrage
+dettes de jeu,dettes,jeu,r_has_causatif,calibrage
+cratère de la météorite,cratère,météorite,r_has_causatif,calibrage
+ampoules de la marche,ampoules,marche,r_has_causatif,calibrage
+déshydratation de la canicule,déshydratation,canicule,r_has_causatif,calibrage
+retombées du scandale,retombées,scandale,r_has_causatif,calibrage
+brûlures du soleil,brûlures,soleil,r_has_causatif,calibrage
+démangeaisons de la varicelle,démangeaisons,varicelle,r_has_causatif,calibrage
+générosité du mécène,générosité,mécène,r_has_property-1,apprentissage
+naïveté de l'enfant,naïveté,enfant,r_has_property-1,apprentissage
+cruauté du tyran,cruauté,tyran,r_has_property-1,apprentissage
+fragilité du cristal,fragilité,cristal,r_has_property-1,apprentissage
+patience du pêcheur,patience,pêcheur,r_has_property-1,apprentissage
+dureté du diamant,dureté,diamant,r_has_property-1,apprentissage
+timidité de l'adolescent,timidité,adolescent,r_has_property-1,apprentissage
+blancheur de la neige,blancheur,neige,r_has_property-1,apprentissage
+humilité du moine,humilité,moine,r_has_property-1,apprentissage
+profondeur du puits,profondeur,puits,r_has_property-1,apprentissage
+loyauté du chien,loyauté,chien,r_has_property-1,apprentissage
+amertume du café,amertume,café,r_has_property-1,apprentissage
+bravoure du pompier,bravoure,pompier,r_has_property-1,apprentissage
+transparence de la vitre,transparence,vitre,r_has_property-1,apprentissage
+lenteur de l'escargot,lenteur,escargot,r_has_property-1,apprentissage
+hauteur de la tour,hauteur,tour,r_has_property-1,apprentissage
+souplesse du cuir,souplesse,cuir,r_has_property-1,apprentissage
+sérénité du sage,sérénité,sage,r_has_property-1,apprentissage
+froideur de l'accueil,froideur,accueil,r_has_property-1,apprentissage
+rapidité du guépard,rapidité,guépard,r_has_property-1,apprentissage
+rigueur du comptable,rigueur,comptable,r_has_property-1,apprentissage
+humidité de la cave,humidité,cave,r_has_property-1,apprentissage
+sévérité du juge,sévérité,juge,r_has_property-1,apprentissage
+légèreté de la plume,légèreté,plume,r_has_property-1,apprentissage
+curiosité du chaton,curiosité,chaton,r_has_property-1,apprentissage
+acidité du citron,acidité,citron,r_has_property-1,apprentissage
+entêtement de la mule,entêtement,mule,r_has_property-1,apprentissage
+vétusté de l'immeuble,vétusté,immeuble,r_has_property-1,apprentissage
+politesse de l'hôte,politesse,hôte,r_has_property-1,apprentissage
+clarté du ciel,clarté,ciel,r_has_property-1,apprentissage
+étroitesse de la ruelle,étroitesse,ruelle,r_has_property-1,apprentissage
+propreté de la cuisine,propreté,cuisine,r_has_property-1,apprentissage
+arrogance du champion,arrogance,champion,r_has_property-1,apprentissage
+solidité du pont,solidité,pont,r_has_property-1,apprentissage
+ferveur des supporters,ferveur,supporters,r_has_property-1,apprentissage
+complexité du problème,complexité,problème,r_has_property-1,apprentissage
+prudence du conducteur,prudence,conducteur,r_has_property-1,apprentissage
+richesse du vocabulaire,richesse,vocabulaire,r_has_property-1,apprentissage
+beauté d'un paysage,beauté,paysage,r_has_property-1,apprentissage
+immensité du désert,immensité,désert,r_has_property-1,apprentissage
+maladresse du stagiaire,maladresse,stagiaire,r_has_property-1,calibrage
+élégance de la danseuse,élégance,danseuse,r_has_property-1,calibrage
+discrétion du majordome,discrétion,majordome,r_has_property-1,calibrage
+obscurité de la grotte,obscurité,grotte,r_has_property-1,calibrage
+malice du renard,malice,renard,r_has_property-1,calibrage
+férocité du loup,férocité,loup,r_has_property-1,calibrage
+témérité de l'alpiniste,témérité,alpiniste,r_has_property-1,calibrage
+gentillesse de la voisine,gentillesse,voisine,r_has_property-1,calibrage
+fiabilité du moteur,fiabilité,moteur,r_has_property-1,calibrage
+lâcheté du déserteur,lâcheté,déserteur,r_has_property-1,calibrage
+aile de l'avion,aile,avion,r_holo,apprentissage
+guidon du vélo,guidon,vélo,r_holo,apprentissage
+pédale du piano,pédale,piano,r_holo,apprentissage
+clavier de l'ordinateur,clavier,ordinateur,r_holo,apprentissage
+écran du téléphone,écran,téléphone,r_holo,apprentissage
+cheminée de l'usine,cheminée,usine,r_holo,apprentissage
+clocher de l'église,clocher,église,r_holo,apprentissage
+dôme de la basilique,dôme,basilique,r_holo,apprentissage
+marches de l'escalier,marches,escalier,r_holo,apprentissage
+serrure du coffre,serrure,coffre,r_holo,apprentissage
+pointe de la flèche,pointe,flèche,r_holo,apprentissage
+corde de la guitare,corde,guitare,r_holo,apprentissage
+touche de l'accordéon,touche,accordéon,r_holo,apprentissage
+moteur du bateau,moteur,bateau,r_holo,apprentissage
+gouvernail du navire,gouvernail,navire,r_holo,apprentissage
+mât du voilier,mât,voilier,r_holo,apprentissage
+voile de la goélette,voile,goélette,r_holo,apprentissage
+ancre de la barque,ancre,barque,r_holo,apprentissage
+branche de l'arbre,branche,arbre,r_holo,apprentissage
+racine du chêne,racine,chêne,r_holo,apprentissage
+feuille du platane,feuille,platane,r_holo,apprentissage
+pétale de la rose,pétale,rose,r_holo,apprentissage
+épine du rosier,épine,rosier,r_holo,apprentissage
+écorce du bouleau,écorce,bouleau,r_holo,apprentissage
+noyau de la pêche,noyau,pêche,r_holo,apprentissage
+pépin de la pomme,pépin,pomme,r_holo,apprentissage
+peau de la banane,peau,banane,r_holo,apprentissage
+aile du papillon,aile,papillon,r_holo,apprentissage
+patte de l'araignée,patte,araignée,r_holo,apprentissage
+défense de l'éléphant,défense,éléphant,r_holo,apprentissage
+crinière du lion,crinière,lion,r_holo,apprentissage
+bosse du chameau,bosse,chameau,r_holo,apprentissage
+nageoire du requin,nageoire,requin,r_holo,apprentissage
+bec du perroquet,bec,perroquet,r_holo,apprentissage
+queue du castor,queue,castor,r_holo,apprentissage
+sabot du cheval,sabot,cheval,r_holo,apprentissage
+corne du taureau,corne,taureau,r_holo,apprentissage
+coquille de l'escargot,coquille,escargot,r_holo,apprentissage
+mandibule de la fourmi,mandibule,fourmi,r_holo,apprentissage
+antenne du criquet,antenne,criquet,r_holo,apprentissage
+volant de la voiture,volant,voiture,r_holo,calibrage
+toit de la maison,toit,maison,r_holo,calibrage
+poignée de la porte,poignée,porte,r_holo,calibrage
+lame du couteau,lame,couteau,r_holo,calibrage
+manche de la hache,manche,hache,r_holo,calibrage
+roue du chariot,roue,chariot,r_holo,calibrage
+essieu de la remorque,essieu,remorque,r_holo,calibrage
+carapace de la tortue,carapace,tortue,r_holo,calibrage
+plume du paon,plume,paon,r_holo,calibrage
+dard de l'abeille,dard,abeille,r_holo,calibrage
+cathédrale de Chartres,cathédrale,Chartres,r_lieu,apprentissage
+port de Rotterdam,port,Rotterdam,r_lieu,apprentissage
+métro de Moscou,métro,Moscou,r_lieu,apprentissage
+zoo de Vincennes,zoo,Vincennes,r_lieu,apprentissage
+marché de Rungis,marché,Rungis,r_lieu,apprentissage
+stade de Marseille,stade,Marseille,r_lieu,apprentissage
+université de Cambridge,université,Cambridge,r_lieu,apprentissage
+pont d'Avignon,pont,Avignon,r_lieu,apprentissage
+canal de Suez,canal,Suez,r_lieu,apprentissage
+lac d'Annecy,lac,Annecy,r_lieu,apprentissage
+falaises d'Étretat,falaises,Étretat,r_lieu,apprentissage
+gorges du Verdon,gorges,Verdon,r_lieu,apprentissage
+dunes du Sahara,dunes,Sahara,r_lieu,apprentissage
+savane du Kenya,savane,Kenya,r_lieu,apprentissage
+jungle de Bornéo,jungle,Bornéo,r_lieu,apprentissage
+récifs d'Australie,récifs,Australie,r_lieu,apprentissage
+fjords de Norvège,fjords,Norvège,r_lieu,apprentissage
+steppes de Mongolie,steppes,Mongolie,r_lieu,apprentissage
+marais de Camargue,marais,Camargue,r_lieu,apprentissage
+vignobles de Bourgogne,vignobles,Bourgogne,r_lieu,apprentissage
+oliveraies de Toscane,oliveraies,Toscane,r_lieu,apprentissage
+rizières de Bali,rizières,Bali,r_lieu,apprentissage
+mines du Chili,mines,Chili,r_lieu,apprentissage
+quartier de Montmartre,quartier,Montmartre,r_lieu,apprentissage
+gare de Lyon,gare,Lyon,r_lieu,apprentissage
+aéroport d'Orly,aéroport,Orly,r_lieu,apprentissage
+musée du Caire,musée,Caire,r_lieu,apprentissage
+casino de Monaco,casino,Monaco,r_lieu,apprentissage
+souk de Marrakech,souk,Marrakech,r_lieu,apprentissage
+bazar d'Istanbul,bazar,Istanbul,r_lieu,apprentissage
+carnaval de Rio,carnaval,Rio,r_lieu,apprentissage
+festival d'Avignon,festival,Avignon,r_lieu,apprentissage
+embouteillages de Bangkok,embouteillages,Bangkok,r_lieu,apprentissage
+brouillard de Londres,brouillard,Londres,r_lieu,apprentissage
+canicule de Séville,canicule,Séville,r_lieu,apprentissage
+mousson de Mumbai,mousson,Mumbai,r_lieu,apprentissage
+séisme de Kobe,séisme,Kobe,r_lieu,apprentissage
+nuits de Saint-Pétersbourg,nuits,Saint-Pétersbourg,r_lieu,apprentissage
+rues de Naples,rues,Naples,r_lieu,apprentissage
+toits de Paris,toits,Paris,r_lieu,apprentissage
+plage de Biarritz,plage,Biarritz,r_lieu,calibrage
+opéra de Sydney,opéra,Sydney,r_lieu,calibrage
+tunnel du Mont-Blanc,tunnel,Mont-Blanc,r_lieu,calibrage
+forêt de Brocéliande,forêt,Brocéliande,r_lieu,calibrage
+glacier des Alpes,glacier,Alpes,r_lieu,calibrage
+volcan d'Auvergne,volcan,Auvergne,r_lieu,calibrage
+mangrove de Guyane,mangrove,Guyane,r_lieu,calibrage
+bibliothèque d'Alexandrie,bibliothèque,Alexandrie,r_lieu,calibrage
+incendies de Californie,incendies,Californie,r_lieu,calibrage
+hiver de Sibérie,hiver,Sibérie,r_lieu,calibrage
+fromage de Hollande,fromage,Hollande,r_lieu>origine,apprentissage
+café de Colombie,café,Colombie,r_lieu>origine,apprentissage
+thé de Ceylan,thé,Ceylan,r_lieu>origine,apprentissage
+soie de Chine,soie,Chine,r_lieu>origine,apprentissage
+olives de Grèce,olives,Grèce,r_lieu>origine,apprentissage
+dattes de Tunisie,dattes,Tunisie,r_lieu>origine,apprentissage
+oranges du Maroc,oranges,Maroc,r_lieu>origine,apprentissage
+whisky d'Écosse,whisky,Écosse,r_lieu>origine,apprentissage
+bière de Belgique,bière,Belgique,r_lieu>origine,apprentissage
+chocolat de Suisse,chocolat,Suisse,r_lieu>origine,apprentissage
+montres de Genève,montres,Genève,r_lieu>origine,apprentissage
+moutarde de Dijon,moutarde,Dijon,r_lieu>origine,apprentissage
+jambon de Parme,jambon,Parme,r_lieu>origine,apprentissage
+savon de Marseille,savon,Marseille,r_lieu>origine,apprentissage
+verre de Murano,verre,Murano,r_lieu>origine,apprentissage
+marbre de Carrare,marbre,Carrare,r_lieu>origine,apprentissage
+granit de Bretagne,granit,Bretagne,r_lieu>origine,apprentissage
+lavande de Provence,lavande,Provence,r_lieu>origine,apprentissage
+melons de Cavaillon,melons,Cavaillon,r_lieu>origine,apprentissage
+fraises de Plougastel,fraises,Plougastel,r_lieu>origine,apprentissage
+pruneaux d'Agen,pruneaux,Agen,r_lieu>origine,apprentissage
+poulet de Bresse,poulet,Bresse,r_lieu>origine,apprentissage
+huîtres de Marennes,huîtres,Marennes,r_lieu>origine,apprentissage
+moules d'Espagne,moules,Espagne,r_lieu>origine,apprentissage
+saumon de Norvège,saumon,Norvège,r_lieu>origine,apprentissage
+morue de Terre-Neuve,morue,Terre-Neuve,r_lieu>origine,apprentissage
+caviar de la Caspienne,caviar,Caspienne,r_lieu>origine,apprentissage
+épices de Zanzibar,épices,Zanzibar,r_lieu>origine,apprentissage
+vanille de Madagascar,vanille,Madagascar,r_lieu>origine,apprentissage
+cacao de Côte d'Ivoire,cacao,Côte d'Ivoire,r_lieu>origine,apprentissage
+sucre de Cuba,sucre,Cuba,r_lieu>origine,apprentissage
+tabac de Virginie,tabac,Virginie,r_lieu>origine,apprentissage
+coton d'Égypte,coton,Égypte,r_lieu>origine,apprentissage
+laine d'Australie,laine,Australie,r_lieu>origine,apprentissage
+cuir d'Italie,cuir,Italie,r_lieu>origine,apprentissage
+charbon de Lorraine,charbon,Lorraine,r_lieu>origine,apprentissage
+pétrole du Golfe,pétrole,Golfe,r_lieu>origine,apprentissage
+émeraudes de Zambie,émeraudes,Zambie,r_lieu>origine,apprentissage
+diamants d'Afrique du Sud,diamants,Afrique du Sud,r_lieu>origine,apprentissage
+or du Klondike,or,Klondike,r_lieu>origine,apprentissage
+riz de Camargue,riz,Camargue,r_lieu>origine,calibrage
+tapis d'Iran,tapis,Iran,r_lieu>origine,calibrage
+bananes des Antilles,bananes,Antilles,r_lieu>origine,calibrage
+rhum de Martinique,rhum,Martinique,r_lieu>origine,calibrage
+porcelaine de Limoges,porcelaine,Limoges,r_lieu>origine,calibrage
+dentelle de Calais,dentelle,Calais,r_lieu>origine,calibrage
+nougat de Montélimar,nougat,Montélimar,r_lieu>origine,calibrage
+couteaux de Thiers,couteaux,Thiers,r_lieu>origine,calibrage
+cristal de Bohême,cristal,Bohême,r_lieu>origine,calibrage
+argile de Vallauris,argile,Vallauris,r_lieu>origine,calibrage
+table de chêne,table,chêne,r_objet>matiere,apprentissage
+pull de laine,pull,laine,r_objet>matiere,apprentissage
+gobelet de plastique,gobelet,plastique,r_objet>matiere,apprentissage
+poutre d'acier,poutre,acier,r_objet>matiere,apprentissage
+chemise de coton,chemise,coton,r_objet>matiere,apprentissage
+bague d'argent,bague,argent,r_objet>matiere,apprentissage
+vase d'argile,vase,argile,r_objet>matiere,apprentissage
+sac de cuir,sac,cuir,r_objet>matiere,apprentissage
+bocal de verre,bocal,verre,r_objet>matiere,apprentissage
+assiette de porcelaine,assiette,porcelaine,r_objet>matiere,apprentissage
+foulard de soie,foulard,soie,r_objet>matiere,apprentissage
+dalle de béton,dalle,béton,r_objet>matiere,apprentissage
+tuyau de cuivre,tuyau,cuivre,r_objet>matiere,apprentissage
+boîte de carton,boîte,carton,r_objet>matiere,apprentissage
+pneu de caoutchouc,pneu,caoutchouc,r_objet>matiere,apprentissage
+bouchon de liège,bouchon,liège,r_objet>matiere,apprentissage
+statuette de bronze,statuette,bronze,r_objet>matiere,apprentissage
+jouet de bois,jouet,bois,r_objet>matiere,apprentissage
+panier d'osier,panier,osier,r_objet>matiere,apprentissage
+nappe de lin,nappe,lin,r_objet>matiere,apprentissage
+bougie de cire,bougie,cire,r_objet>matiere,apprentissage
+peigne d'ivoire,peigne,ivoire,r_objet>matiere,apprentissage
+chapeau de paille,chapeau,paille,r_objet>matiere,apprentissage
+comptoir de zinc,comptoir,zinc,r_objet>matiere,apprentissage
+casserole d'aluminium,casserole,aluminium,r_objet>matiere,apprentissage
+soldat de plomb,soldat,plomb,r_objet>matiere,apprentissage
+couverts d'étain,couverts,étain,r_objet>matiere,apprentissage
+fauteuil de rotin,fauteuil,rotin,r_objet>matiere,apprentissage
+échelle de bambou,échelle,bambou,r_objet>matiere,apprentissage
+sol de carrelage,sol,carrelage,r_objet>matiere,apprentissage
+mur de torchis,mur,torchis,r_objet>matiere,apprentissage
+bol de faïence,bol,faïence,r_objet>matiere,apprentissage
+chaussures de daim,chaussures,daim,r_objet>matiere,apprentissage
+veste de tweed,veste,tweed,r_objet>matiere,apprentissage
+sculpture de glace,sculpture,glace,r_objet>matiere,apprentissage
+château de sable,château,sable,r_objet>matiere,apprentissage
+collier de nacre,collier,nacre,r_objet>matiere,apprentissage
+manche de corne,manche,corne,r_objet>matiere,apprentissage
+pommeau de jade,pommeau,jade,r_objet>matiere,apprentissage
+bonhomme de neige,bonhomme,neige,r_objet>matiere,apprentissage
+statue de marbre,statue,marbre,r_objet>matiere,calibrage
+mur de brique,mur,brique,r_objet>matiere,calibrage
+portail de fer,portail,fer,r_objet>matiere,calibrage
+toit d'ardoise,toit,ardoise,r_objet>matiere,calibrage
+escalier de pierre,escalier,pierre,r_objet>matiere,calibrage
+cloison de plâtre,cloison,plâtre,r_objet>matiere,calibrage
+rideau de velours,rideau,velours,r_objet>matiere,calibrage
+pièce d'or,pièce,or,r_objet>matiere,calibrage
+pot de terre cuite,pot,terre cuite,r_objet>matiere,calibrage
+tapis de jute,tapis,jute,r_objet>matiere,calibrage
+voiture du voisin,voiture,voisin,r_own-1,apprentissage
+maison des parents,maison,parents,r_own-1,apprentissage
+guitare du musicien,guitare,musicien,r_own-1,apprentissage
+valise de la touriste,valise,touriste,r_own-1,apprentissage
+montre du banquier,montre,banquier,r_own-1,apprentissage
+bateau du pêcheur,bateau,pêcheur,r_own-1,apprentissage
+tracteur du fermier,tracteur,fermier,r_own-1,apprentissage
+chien du berger,chien,berger,r_own-1,apprentissage
+cheval du cavalier,cheval,cavalier,r_own-1,apprentissage
+troupeau de l'éleveur,troupeau,éleveur,r_own-1,apprentissage
+boutique du fleuriste,boutique,fleuriste,r_own-1,apprentissage
+atelier du menuisier,atelier,menuisier,r_own-1,apprentissage
+outils du bricoleur,outils,bricoleur,r_own-1,apprentissage
+clés du gardien,clés,gardien,r_own-1,apprentissage
+bureau du directeur,bureau,directeur,r_own-1,apprentissage
+cabinet de l'avocat,cabinet,avocat,r_own-1,apprentissage
+ferme du paysan,ferme,paysan,r_own-1,apprentissage
+terres du propriétaire,terres,propriétaire,r_own-1,apprentissage
+jardin de la retraitée,jardin,retraitée,r_own-1,apprentissage
+vélo du facteur,vélo,facteur,r_own-1,apprentissage
+scooter du livreur,scooter,livreur,r_own-1,apprentissage
+casque du motard,casque,motard,r_own-1,apprentissage
+planche du surfeur,planche,surfeur,r_own-1,apprentissage
+skis du moniteur,skis,moniteur,r_own-1,apprentissage
+raquette de la championne,raquette,championne,r_own-1,apprentissage
+gants du boxeur,gants,boxeur,r_own-1,apprentissage
+maillot du coureur,maillot,coureur,r_own-1,apprentissage
+tente du campeur,tente,campeur,r_own-1,apprentissage
+jumelles de l'ornithologue,jumelles,ornithologue,r_own-1,apprentissage
+appareil du photographe,appareil,photographe,r_own-1,apprentissage
+micro du chanteur,micro,chanteur,r_own-1,apprentissage
+violon de la soliste,violon,soliste,r_own-1,apprentissage
+archet du violoniste,archet,violoniste,r_own-1,apprentissage
+pinceaux du peintre,pinceaux,peintre,r_own-1,apprentissage
+chevalet de l'artiste,chevalet,artiste,r_own-1,apprentissage
+tablier du serveur,tablier,serveur,r_own-1,apprentissage
+livres du professeur,livres,professeur,r_own-1,apprentissage
+cartable de l'écolier,cartable,écolier,r_own-1,apprentissage
+jouets de l'enfant,jouets,enfant,r_own-1,apprentissage
+canne du vieillard,canne,vieillard,r_own-1,apprentissage
+ordinateur de l'étudiant,ordinateur,étudiant,r_own-1,calibrage
+chaussures de la danseuse,chaussures,danseuse,r_own-1,calibrage
+camion du transporteur,camion,transporteur,r_own-1,calibrage
+sac du randonneur,sac,randonneur,r_own-1,calibrage
+four du boulanger,four,boulanger,r_own-1,calibrage
+couteaux du cuisinier,couteaux,cuisinier,r_own-1,calibrage
+caisse du commerçant,caisse,commerçant,r_own-1,calibrage
+coffre du bijoutier,coffre,bijoutier,r_own-1,calibrage
+cahier de la lycéenne,cahier,lycéenne,r_own-1,calibrage
+lunettes de la grand-mère,lunettes,grand-mère,r_own-1,calibrage
+poste de soudure,poste,soudure,r_processus>instr-1,apprentissage
+papier de ponçage,papier,ponçage,r_processus>instr-1,apprentissage
+trépan de forage,trépan,forage,r_processus>instr-1,apprentissage
+tuyau d'arrosage,tuyau,arrosage,r_processus>instr-1,apprentissage
+produit de nettoyage,produit,nettoyage,r_processus>instr-1,apprentissage
+gel de lavage,gel,lavage,r_processus>instr-1,apprentissage
+étendoir de séchage,étendoir,séchage,r_processus>instr-1,apprentissage
+table de repassage,table,repassage,r_processus>instr-1,apprentissage
+plaque de cuisson,plaque,cuisson,r_processus>instr-1,apprentissage
+lame de coupe,lame,coupe,r_processus>instr-1,apprentissage
+sécateur de taille,sécateur,taille,r_processus>instr-1,apprentissage
+ruban de mesure,ruban,mesure,r_processus>instr-1,apprentissage
+balance de pesage,balance,pesage,r_processus>instr-1,apprentissage
+clé de serrage,clé,serrage,r_processus>instr-1,apprentissage
+mèche de perçage,mèche,perçage,r_processus>instr-1,apprentissage
+tournevis de vissage,tournevis,vissage,r_processus>instr-1,apprentissage
+lampe d'éclairage,lampe,éclairage,r_processus>instr-1,apprentissage
+chaudière de chauffage,chaudière,chauffage,r_processus>instr-1,apprentissage
+cartouche de filtrage,cartouche,filtrage,r_processus>instr-1,apprentissage
+film d'emballage,film,emballage,r_processus>instr-1,apprentissage
+bac de tri,bac,tri,r_processus>instr-1,apprentissage
+camion de transport,camion,transport,r_processus>instr-1,apprentissage
+corde d'escalade,corde,escalade,r_processus>instr-1,apprentissage
+filet de pêche,filet,pêche,r_processus>instr-1,apprentissage
+fusil de chasse,fusil,chasse,r_processus>instr-1,apprentissage
+aiguille de couture,aiguille,couture,r_processus>instr-1,apprentissage
+métier de tissage,métier,tissage,r_processus>instr-1,apprentissage
+gants de jardinage,gants,jardinage,r_processus>instr-1,apprentissage
+balai de ménage,balai,ménage,r_processus>instr-1,apprentissage
+règle de calcul,règle,calcul,r_processus>instr-1,apprentissage
+stylo d'écriture,stylo,écriture,r_processus>instr-1,apprentissage
+crayon de dessin,crayon,dessin,r_processus>instr-1,apprentissage
+écran de projection,écran,projection,r_processus>instr-1,apprentissage
+micro d'enregistrement,micro,enregistrement,r_processus>instr-1,apprentissage
+grille de ventilation,grille,ventilation,r_processus>instr-1,apprentissage
+embout d'aspiration,embout,aspiration,r_processus>instr-1,apprentissage
+clé de la porte,clé,porte,r_processus>instr-1,apprentissage
+télécommande du portail,télécommande,portail,r_processus>instr-1,apprentissage
+clé du cadenas,clé,cadenas,r_processus>instr-1,apprentissage
+code du coffre,code,coffre,r_processus>instr-1,apprentissage
+couteau de découpe,couteau,découpe,r_processus>instr-1,calibrage
+pinceau de peinture,pinceau,peinture,r_processus>instr-1,calibrage
+pompe de relevage,pompe,relevage,r_processus>instr-1,calibrage
+palan de levage,palan,levage,r_processus>instr-1,calibrage
+plaquette de freinage,plaquette,freinage,r_processus>instr-1,calibrage
+broyeur de déchets,broyeur,déchets,r_processus>instr-1,calibrage
+gilet de sauvetage,gilet,sauvetage,r_processus>instr-1,calibrage
+trousse de secours,trousse,secours,r_processus>instr-1,calibrage
+masque de plongée,masque,plongée,r_processus>instr-1,calibrage
+badge d'accès,badge,accès,r_processus>instr-1,calibrage
+discours du président,discours,président,r_processus_agent,apprentissage
+plaidoirie de l'avocat,plaidoirie,avocat,r_processus_agent,apprentissage
+concert du pianiste,concert,pianiste,r_processus_agent,apprentissage
+course du sprinteur,course,sprinteur,r_processus_agent,apprentissage
+intervention du policier,intervention,policier,r_processus_agent,apprentissage
+prêche de l'imam,prêche,imam,r_processus_agent,apprentissage
+sermon du curé,sermon,curé,r_processus_agent,apprentissage
+conférence du chercheur,conférence,chercheur,r_processus_agent,apprentissage
+leçon de l'instituteur,leçon,instituteur,r_processus_agent,apprentissage
+fouille de l'archéologue,fouille,archéologue,r_processus_agent,apprentissage
+plongée du scaphandrier,plongée,scaphandrier,r_processus_agent,apprentissage
+envol de la cigogne,envol,cigogne,r_processus_agent,apprentissage
+migration des hirondelles,migration,hirondelles,r_processus_agent,apprentissage
+galop du cheval,galop,cheval,r_processus_agent,apprentissage
+aboiement du chien,aboiement,chien,r_processus_agent,apprentissage
+rugissement du lion,rugissement,lion,r_processus_agent,apprentissage
+chant du rossignol,chant,rossignol,r_processus_agent,apprentissage
+danse de la ballerine,danse,ballerine,r_processus_agent,apprentissage
+grève des cheminots,grève,cheminots,r_processus_agent,apprentissage
+manifestation des étudiants,manifestation,étudiants,r_processus_agent,apprentissage
+vote des députés,vote,députés,r_processus_agent,apprentissage
+décision du juge,décision,juge,r_processus_agent,apprentissage
+enquête de l'inspecteur,enquête,inspecteur,r_processus_agent,apprentissage
+diagnostic du médecin,diagnostic,médecin,r_processus_agent,apprentissage
+plaidoyer du militant,plaidoyer,militant,r_processus_agent,apprentissage
+négociation du syndicat,négociation,syndicat,r_processus_agent,apprentissage
+audit du commissaire,audit,commissaire,r_processus_agent,apprentissage
+livraison du coursier,livraison,coursier,r_processus_agent,apprentissage
+réparation du plombier,réparation,plombier,r_processus_agent,apprentissage
+construction des maçons,construction,maçons,r_processus_agent,apprentissage
+traite du fermier,traite,fermier,r_processus_agent,apprentissage
+pêche des marins,pêche,marins,r_processus_agent,apprentissage
+patrouille des gendarmes,patrouille,gendarmes,r_processus_agent,apprentissage
+entraînement de l'équipe,entraînement,équipe,r_processus_agent,apprentissage
+offensive de l'armée,offensive,armée,r_processus_agent,apprentissage
+ponte de la poule,ponte,poule,r_processus_agent,apprentissage
+nidification des oiseaux,nidification,oiseaux,r_processus_agent,apprentissage
+hibernation de l'ours,hibernation,ours,r_processus_agent,apprentissage
+mue du crabe,mue,crabe,r_processus_agent,apprentissage
+croissance des plantes,croissance,plantes,r_processus_agent,apprentissage
+opération du chirurgien,opération,chirurgien,r_processus_agent,calibrage
+morsure du serpent,morsure,serpent,r_processus_agent,calibrage
+piqûre du moustique,piqûre,moustique,r_processus_agent,calibrage
+performance de l'acrobate,performance,acrobate,r_processus_agent,calibrage
+numéro du clown,numéro,clown,r_processus_agent,calibrage
+tournée du chanteur,tournée,chanteur,r_processus_agent,calibrage
+inspection du contrôleur,inspection,contrôleur,r_processus_agent,calibrage
+récolte des vendangeurs,récolte,vendangeurs,r_processus_agent,calibrage
+semis de l'agriculteur,semis,agriculteur,r_processus_agent,calibrage
+retraite des troupes,retraite,troupes,r_processus_agent,calibrage
+ouverture de la fenêtre,ouverture,fenêtre,r_processus_patient,apprentissage
+fermeture du magasin,fermeture,magasin,r_processus_patient,apprentissage
+destruction du village,destruction,village,r_processus_patient,apprentissage
+démolition de l'immeuble,démolition,immeuble,r_processus_patient,apprentissage
+construction du barrage,construction,barrage,r_processus_patient,apprentissage
+nettoyage des vitres,nettoyage,vitres,r_processus_patient,apprentissage
+lavage de la voiture,lavage,voiture,r_processus_patient,apprentissage
+taille des rosiers,taille,rosiers,r_processus_patient,apprentissage
+récolte du blé,récolte,blé,r_processus_patient,apprentissage
+cueillette des fraises,cueillette,fraises,r_processus_patient,apprentissage
+broyage des olives,broyage,olives,r_processus_patient,apprentissage
+congélation des légumes,congélation,légumes,r_processus_patient,apprentissage
+séchage du linge,séchage,linge,r_processus_patient,apprentissage
+repassage des chemises,repassage,chemises,r_processus_patient,apprentissage
+tri des déchets,tri,déchets,r_processus_patient,apprentissage
+recyclage du plastique,recyclage,plastique,r_processus_patient,apprentissage
+traitement des eaux,traitement,eaux,r_processus_patient,apprentissage
+filtrage de l'air,filtrage,air,r_processus_patient,apprentissage
+raffinage du pétrole,raffinage,pétrole,r_processus_patient,apprentissage
+extraction du charbon,extraction,charbon,r_processus_patient,apprentissage
+forage du puits,forage,puits,r_processus_patient,apprentissage
+pavage de la route,pavage,route,r_processus_patient,apprentissage
+peinture du plafond,peinture,plafond,r_processus_patient,apprentissage
+vernissage du parquet,vernissage,parquet,r_processus_patient,apprentissage
+polissage du marbre,polissage,marbre,r_processus_patient,apprentissage
+ponçage de la planche,ponçage,planche,r_processus_patient,apprentissage
+assemblage des pièces,assemblage,pièces,r_processus_patient,apprentissage
+emballage des colis,emballage,colis,r_processus_patient,apprentissage
+livraison des marchandises,livraison,marchandises,r_processus_patient,apprentissage
+vente de la maison,vente,maison,r_processus_patient,apprentissage
+achat du terrain,achat,terrain,r_processus_patient,apprentissage
+restauration du tableau,restauration,tableau,r_processus_patient,apprentissage
+numérisation des archives,numérisation,archives,r_processus_patient,apprentissage
+traduction du roman,traduction,roman,r_processus_patient,apprentissage
+correction des copies,correction,copies,r_processus_patient,apprentissage
+relecture du manuscrit,relecture,manuscrit,r_processus_patient,apprentissage
+publication de l'article,publication,article,r_processus_patient,apprentissage
+diffusion du film,diffusion,film,r_processus_patient,apprentissage
+annulation du concert,annulation,concert,r_processus_patient,apprentissage
+report de la réunion,report,réunion,r_processus_patient,apprentissage
+rénovation de la façade,rénovation,façade,r_processus_patient,calibrage
+réparation du moteur,réparation,moteur,r_processus_patient,calibrage
+tonte de la pelouse,tonte,pelouse,r_processus_patient,calibrage
+élagage des arbres,élagage,arbres,r_processus_patient,calibrage
+découpe de la viande,découpe,viande,r_processus_patient,calibrage
+cuisson du riz,cuisson,riz,r_processus_patient,calibrage
+fonte du beurre,fonte,beurre,r_processus_patient,calibrage
+creusement du tunnel,creusement,tunnel,r_processus_patient,calibrage
+soudure des tuyaux,soudure,tuyaux,r_processus_patient,calibrage
+location de l'appartement,location,appartement,r_processus_patient,calibrage
+pain du boulanger,pain,boulanger,r_product_of,apprentissage
+fromage du fromager,fromage,fromager,r_product_of,apprentissage
+saucisson du charcutier,saucisson,charcutier,r_product_of,apprentissage
+vin du vigneron,vin,vigneron,r_product_of,apprentissage
+bière du brasseur,bière,brasseur,r_product_of,apprentissage
+miel de l'apiculteur,miel,apiculteur,r_product_of,apprentissage
+confiture de la grand-mère,confiture,grand-mère,r_product_of,apprentissage
+sculpture du sculpteur,sculpture,sculpteur,r_product_of,apprentissage
+fresque du muraliste,fresque,muraliste,r_product_of,apprentissage
+roman de l'écrivain,roman,écrivain,r_product_of,apprentissage
+poème du poète,poème,poète,r_product_of,apprentissage
+chanson de l'auteur,chanson,auteur,r_product_of,apprentissage
+photographie du reporter,photographie,reporter,r_product_of,apprentissage
+toile du portraitiste,toile,portraitiste,r_product_of,apprentissage
+bijou de l'orfèvre,bijou,orfèvre,r_product_of,apprentissage
+vase du potier,vase,potier,r_product_of,apprentissage
+tapis du tisserand,tapis,tisserand,r_product_of,apprentissage
+grille du ferronnier,grille,ferronnier,r_product_of,apprentissage
+vitrail du verrier,vitrail,verrier,r_product_of,apprentissage
+costume du tailleur,costume,tailleur,r_product_of,apprentissage
+robe de la couturière,robe,couturière,r_product_of,apprentissage
+chapeau de la modiste,chapeau,modiste,r_product_of,apprentissage
+violon du luthier,violon,luthier,r_product_of,apprentissage
+horloge de l'horloger,horloge,horloger,r_product_of,apprentissage
+maquette du modéliste,maquette,modéliste,r_product_of,apprentissage
+plan de l'architecte,plan,architecte,r_product_of,apprentissage
+logiciel du développeur,logiciel,développeur,r_product_of,apprentissage
+théorème du mathématicien,théorème,mathématicien,r_product_of,apprentissage
+vaccin du laboratoire,vaccin,laboratoire,r_product_of,apprentissage
+acier de l'aciérie,acier,aciérie,r_product_of,apprentissage
+papier de la papeterie,papier,papeterie,r_product_of,apprentissage
+ciment de la cimenterie,ciment,cimenterie,r_product_of,apprentissage
+tissu de la filature,tissu,filature,r_product_of,apprentissage
+œuf de la poule,œuf,poule,r_product_of,apprentissage
+laine du mouton,laine,mouton,r_product_of,apprentissage
+soie du ver,soie,ver,r_product_of,apprentissage
+toile de l'araignée,toile,araignée,r_product_of,apprentissage
+venin du serpent,venin,serpent,r_product_of,apprentissage
+encre de la seiche,encre,seiche,r_product_of,apprentissage
+perle de l'huître,perle,huître,r_product_of,apprentissage
+tarte de la pâtissière,tarte,pâtissière,r_product_of,calibrage
+symphonie du compositeur,symphonie,compositeur,r_product_of,calibrage
+film du réalisateur,film,réalisateur,r_product_of,calibrage
+gravure du graveur,gravure,graveur,r_product_of,calibrage
+meuble de l'ébéniste,meuble,ébéniste,r_product_of,calibrage
+chaise du menuisier,chaise,menuisier,r_product_of,calibrage
+chaussures du cordonnier,chaussures,cordonnier,r_product_of,calibrage
+voiture du constructeur,voiture,constructeur,r_product_of,calibrage
+lait de la vache,lait,vache,r_product_of,calibrage
+cire des abeilles,cire,abeilles,r_product_of,calibrage
+tranche de pain,tranche,pain,r_quantificateur,apprentissage
+morceau de sucre,morceau,sucre,r_quantificateur,apprentissage
+grain de riz,grain,riz,r_quantificateur,apprentissage
+goutte d'eau,goutte,eau,r_quantificateur,apprentissage
+pincée de sel,pincée,sel,r_quantificateur,apprentissage
+verre de lait,verre,lait,r_quantificateur,apprentissage
+tasse de café,tasse,café,r_quantificateur,apprentissage
+bol de soupe,bol,soupe,r_quantificateur,apprentissage
+assiette de pâtes,assiette,pâtes,r_quantificateur,apprentissage
+louche de bouillon,louche,bouillon,r_quantificateur,apprentissage
+brassée de fleurs,brassée,fleurs,r_quantificateur,apprentissage
+botte de radis,botte,radis,r_quantificateur,apprentissage
+gerbe de blé,gerbe,blé,r_quantificateur,apprentissage
+tas de bois,tas,bois,r_quantificateur,apprentissage
+pile de livres,pile,livres,r_quantificateur,apprentissage
+rame de papier,rame,papier,r_quantificateur,apprentissage
+barre de chocolat,barre,chocolat,r_quantificateur,apprentissage
+plaque de beurre,plaque,beurre,r_quantificateur,apprentissage
+pain de savon,pain,savon,r_quantificateur,apprentissage
+pot de miel,pot,miel,r_quantificateur,apprentissage
+bocal de confiture,bocal,confiture,r_quantificateur,apprentissage
+sac de ciment,sac,ciment,r_quantificateur,apprentissage
+cageot de tomates,cageot,tomates,r_quantificateur,apprentissage
+filet d'oranges,filet,oranges,r_quantificateur,apprentissage
+bouquet de persil,bouquet,persil,r_quantificateur,apprentissage
+touffe d'herbe,touffe,herbe,r_quantificateur,apprentissage
+flaque d'huile,flaque,huile,r_quantificateur,apprentissage
+litre d'essence,litre,essence,r_quantificateur,apprentissage
+tonne d'acier,tonne,acier,r_quantificateur,apprentissage
+mètre de tissu,mètre,tissu,r_quantificateur,apprentissage
+hectare de vigne,hectare,vigne,r_quantificateur,apprentissage
+heure de route,heure,route,r_quantificateur,apprentissage
+minute de silence,minute,silence,r_quantificateur,apprentissage
+journée de travail,journée,travail,r_quantificateur,apprentissage
+mois de loyer,mois,loyer,r_quantificateur,apprentissage
+année de service,année,service,r_quantificateur,apprentissage
+siècle d'histoire,siècle,histoire,r_quantificateur,apprentissage
+centaine de manifestants,centaine,manifestants,r_quantificateur,apprentissage
+paire de chaussettes,paire,chaussettes,r_quantificateur,apprentissage
+douzaine d'œufs,douzaine,œufs,r_quantificateur,apprentissage
+cuillère de sirop,cuillère,sirop,r_quantificateur,calibrage
+poignée de sable,poignée,sable,r_quantificateur,calibrage
+bloc de glace,bloc,glace,r_quantificateur,calibrage
+caisse de pommes,caisse,pommes,r_quantificateur,calibrage
+nuage de lait,nuage,lait,r_quantificateur,calibrage
+doigt de vin,doigt,vin,r_quantificateur,calibrage
+kilo de farine,kilo,farine,r_quantificateur,calibrage
+semaine de vacances,semaine,vacances,r_quantificateur,calibrage
+dizaine d'élèves,dizaine,élèves,r_quantificateur,calibrage
+millier de spectateurs,millier,spectateurs,r_quantificateur,calibrage
+père de la mariée,père,mariée,r_social_tie,apprentissage
+mère du champion,mère,champion,r_social_tie,apprentissage
+frère du roi,frère,roi,r_social_tie,apprentissage
+sœur de la victime,sœur,victime,r_social_tie,apprentissage
+cousin de l'accusé,cousin,accusé,r_social_tie,apprentissage
+grand-père de l'enfant,grand-père,enfant,r_social_tie,apprentissage
+fils du fermier,fils,fermier,r_social_tie,apprentissage
+fille du ministre,fille,ministre,r_social_tie,apprentissage
+époux de la reine,époux,reine,r_social_tie,apprentissage
+fiancée du capitaine,fiancée,capitaine,r_social_tie,apprentissage
+voisin de la famille,voisin,famille,r_social_tie,apprentissage
+collègue du directeur,collègue,directeur,r_social_tie,apprentissage
+patron des ouvriers,patron,ouvriers,r_social_tie,apprentissage
+chef de l'équipe,chef,équipe,r_social_tie,apprentissage
+entraîneur des joueurs,entraîneur,joueurs,r_social_tie,apprentissage
+professeur des élèves,professeur,élèves,r_social_tie,apprentissage
+mentor du débutant,mentor,débutant,r_social_tie,apprentissage
+avocat de l'accusé,avocat,accusé,r_social_tie,apprentissage
+défenseur des victimes,défenseur,victimes,r_social_tie,apprentissage
+procureur de la République,procureur,République,r_social_tie,apprentissage
+médecin de la famille,médecin,famille,r_social_tie,apprentissage
+infirmière du patient,infirmière,patient,r_social_tie,apprentissage
+nounou des jumeaux,nounou,jumeaux,r_social_tie,apprentissage
+marraine de la petite,marraine,petite,r_social_tie,apprentissage
+porte-parole du gouvernement,porte-parole,gouvernement,r_social_tie,apprentissage
+représentant des salariés,représentant,salariés,r_social_tie,apprentissage
+délégué de la classe,délégué,classe,r_social_tie,apprentissage
+syndic de la copropriété,syndic,copropriété,r_social_tie,apprentissage
+secrétaire de l'association,secrétaire,association,r_social_tie,apprentissage
+doyen de la faculté,doyen,faculté,r_social_tie,apprentissage
+recteur de l'académie,recteur,académie,r_social_tie,apprentissage
+maire de la commune,maire,commune,r_social_tie,apprentissage
+chef du village,chef,village,r_social_tie,apprentissage
+roi des Belges,roi,Belges,r_social_tie,apprentissage
+empereur des Français,empereur,Français,r_social_tie,apprentissage
+berger du troupeau,berger,troupeau,r_social_tie,apprentissage
+maître du chien,maître,chien,r_social_tie,apprentissage
+bailleur du locataire,bailleur,locataire,r_social_tie,apprentissage
+employeur du stagiaire,employeur,stagiaire,r_social_tie,apprentissage
+partenaire de l'entreprise,partenaire,entreprise,r_social_tie,apprentissage
+oncle du garçon,oncle,garçon,r_social_tie,calibrage
+veuve du soldat,veuve,soldat,r_social_tie,calibrage
+ami du président,ami,président,r_social_tie,calibrage
+capitaine de l'équipage,capitaine,équipage,r_social_tie,calibrage
+tuteur de l'étudiant,tuteur,étudiant,r_social_tie,calibrage
+gouvernante des enfants,gouvernante,enfants,r_social_tie,calibrage
+parrain du filleul,parrain,filleul,r_social_tie,calibrage
+président du club,président,club,r_social_tie,calibrage
+trésorier du comité,trésorier,comité,r_social_tie,calibrage
+client de l'agence,client,agence,r_social_tie,calibrage
+livre de cuisine,livre,cuisine,r_topic,apprentissage
+cours de mathématiques,cours,mathématiques,r_topic,apprentissage
+magasin de chaussures,magasin,chaussures,r_topic,apprentissage
+roman de science-fiction,roman,science-fiction,r_topic,apprentissage
+repas de midi,repas,midi,r_topic,apprentissage
+revue d'histoire,revue,histoire,r_topic,apprentissage
+manuel de chimie,manuel,chimie,r_topic,apprentissage
+site de rencontres,site,rencontres,r_topic,apprentissage
+club de lecture,club,lecture,r_topic,apprentissage
+atelier de poterie,atelier,poterie,r_topic,apprentissage
+film d'aventure,film,aventure,r_topic,apprentissage
+salon de coiffure,salon,coiffure,r_topic,apprentissage
+émission de variétés,émission,variétés,r_topic,apprentissage
+magazine de mode,magazine,mode,r_topic,apprentissage
+boutique de souvenirs,boutique,souvenirs,r_topic,apprentissage
+journal du soir,journal,soir,r_topic,apprentissage
+stage de survie,stage,survie,r_topic,apprentissage
+chaîne d'information,chaîne,information,r_topic,apprentissage
+jeu de stratégie,jeu,stratégie,r_topic,apprentissage
+salle de sport,salle,sport,r_topic,apprentissage
+école de commerce,école,commerce,r_topic,apprentissage
+faculté de médecine,faculté,médecine,r_topic,apprentissage
+laboratoire de biologie,laboratoire,biologie,r_topic,apprentissage
+traité de paix,traité,paix,r_topic,apprentissage
+loi de finances,loi,finances,r_topic,apprentissage
+réforme des retraites,réforme,retraites,r_topic,apprentissage
+rapport de gestion,rapport,gestion,r_topic,apprentissage
+colloque de linguistique,colloque,linguistique,r_topic,apprentissage
+thèse de sociologie,thèse,sociologie,r_topic,apprentissage
+mémoire d'informatique,mémoire,informatique,r_topic,apprentissage
+exposé de géographie,exposé,géographie,r_topic,apprentissage
+dictionnaire de synonymes,dictionnaire,synonymes,r_topic,apprentissage
+encyclopédie des animaux,encyclopédie,animaux,r_topic,apprentissage
+guide de randonnée,guide,randonnée,r_topic,apprentissage
+carnet de voyage,carnet,voyage,r_topic,apprentissage
+blog de jardinage,blog,jardinage,r_topic,apprentissage
+podcast de cinéma,podcast,cinéma,r_topic,apprentissage
+festival de jazz,festival,jazz,r_topic,apprentissage
+concert de rock,concert,rock,r_topic,apprentissage
+match de football,match,football,r_topic,apprentissage
+bus de nuit,bus,nuit,r_topic,calibrage
+professeur de piano,professeur,piano,r_topic,calibrage
+brise du matin,brise,matin,r_topic,calibrage
+concours de beauté,concours,beauté,r_topic,calibrage
+conférence de bioéthique,conférence,bioéthique,r_topic,calibrage
+débat de société,débat,société,r_topic,calibrage
+vacances d'été,vacances,été,r_topic,calibrage
+commission d'enquête,commission,enquête,r_topic,calibrage
+devoir de philosophie,devoir,philosophie,r_topic,calibrage
+tournoi d'échecs,tournoi,échecs,r_topic,calibrage
