@@ -1,0 +1,38 @@
+[
+ {
+  "debut_utc": "2026-09-20T10:49:04+00:00",
+  "fin_utc": "2026-09-20T10:49:26+00:00",
+  "duree_s": 21.4,
+  "termes_vises": 5,
+  "reprise_sautes": 0,
+  "collectes": 5,
+  "erreurs": 0,
+  "appels": 31,
+  "appels_reseau": 31,
+  "octets_reseau": 4585576
+ },
+ {
+  "debut_utc": "2026-09-20T10:50:06+00:00",
+  "fin_utc": "2026-09-20T12:30:23+00:00",
+  "duree_s": 6016.2,
+  "termes_vises": 1871,
+  "reprise_sautes": 5,
+  "collectes": 1866,
+  "erreurs": 0,
+  "appels": 9387,
+  "appels_reseau": 9367,
+  "octets_reseau": 796164184
+ },
+ {
+  "debut_utc": "2026-09-20T12:30:45+00:00",
+  "fin_utc": "2026-09-20T12:31:47+00:00",
+  "duree_s": 62.2,
+  "termes_vises": 1871,
+  "reprise_sautes": 0,
+  "collectes": 1871,
+  "erreurs": 0,
+  "appels": 9416,
+  "appels_reseau": 0,
+  "octets_reseau": 0
+ }
+]

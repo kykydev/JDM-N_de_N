@@ -1,0 +1,3 @@
+terme_absent,fichier,role,relation,syntagme,raison,candidat_propose,methode
+cacao de Côte,corpus_r_lieu_origine.csv,A,r_lieu>origine,cacao de Côte d'Ivoire,"absent de JDM ; A d'un découpage concurrent de « cacao de Côte d'Ivoire », que cette absence écarte",,"aucun remplacement : l'absence tranche le découpage ambigu, elle ne signale pas un terme manquant"
+diamants d'Afrique,corpus_r_lieu_origine.csv,A,r_lieu>origine,diamants d'Afrique du Sud,"absent de JDM ; A d'un découpage concurrent de « diamants d'Afrique du Sud », que cette absence écarte",,"aucun remplacement : l'absence tranche le découpage ambigu, elle ne signale pas un terme manquant"
