@@ -11,7 +11,7 @@ Généré par `src/corpus_check.py` sur `data/corpus/raw/`. Rien n'a été suppr
 | corpus_r_has_property-1 | r_has_property-1 | 80 | 80 | 50 | 30 | 0 | 0 | OK |
 | corpus_r_holonymie | r_holo | 80 | 80 | 50 | 30 | 0 | 0 | OK |
 | corpus_r_lieu | r_lieu | 80 | 80 | 50 | 30 | 0 | 0 | OK |
-| corpus_r_lieu_origine | r_lieu>origine | 80 | 80 | 50 | 30 | 2 | 0 | OK |
+| corpus_r_lieu_origine | r_lieu>origine | 80 | 80 | 50 | 30 | 0 | 0 | OK |
 | corpus_r_objet_matiere | r_objet>matiere | 80 | 80 | 50 | 30 | 0 | 0 | OK |
 | corpus_r_own-1 | r_own-1 | 80 | 80 | 50 | 30 | 0 | 0 | OK |
 | corpus_r_processus_agent | r_processus_agent | 80 | 80 | 50 | 30 | 0 | 0 | OK |
@@ -30,12 +30,18 @@ Aucune.
 
 ## 3. Cas ambigus (plusieurs prépositions)
 
-Non tranchés ici : résolution via la base de connaissances à l'étape 2 (papier, §4.1). Ces lignes ont A, B, det et definitude vides dans les CSV nettoyés ; les candidats sont dans la colonne `candidats`.
+Résolution via la base de connaissances (papier, §4.1) : le découpage retenu est celui dont les deux termes existent dans JDM, mesuré par la sonde (`reports/rapport_sonde_jdm.md`, §7) et reporté ici par `DECOUPAGES_ARBITRES`. Une ligne tranchée est écrite comme une ligne ordinaire dans le CSV nettoyé (`ambigu = non`, colonne `candidats` vide) ; seuls les termes du découpage retenu entrent dans `termes.csv`. Une ligne non tranchée garde A, B, det et definitude vides et ses candidats dans la colonne `candidats`.
 
-| fichier | ligne | split | syntagme | découpages candidats |
-|---|---|---|---|---|
-| corpus_r_lieu_origine | 39 | train | **cacao de Côte d'Ivoire** | A=`cacao` · B=`Côte d'Ivoire` (de; NoDet+Def)<br>A=`cacao de Côte` · B=`Ivoire` (d'; NoDet+Def) |
-| corpus_r_lieu_origine | 48 | train | **diamants d'Afrique du Sud** | A=`diamants` · B=`Afrique du Sud` (d'; NoDet+Def)<br>A=`diamants d'Afrique` · B=`Sud` (du; Det+Def) |
+### 3.1 Tranchés par la sonde
+
+| fichier | ligne | split | syntagme | découpages candidats | verdict |
+|---|---|---|---|---|---|
+| corpus_r_lieu_origine | 39 | train | **cacao de Côte d'Ivoire** | **retenu** A=`cacao` · B=`Côte d'Ivoire` (de; NoDet+Def)<br>A=`cacao de Côte` · B=`Ivoire` (d'; NoDet+Def) | A=`cacao` · B=`Côte d'Ivoire` (NoDet+Def) |
+| corpus_r_lieu_origine | 48 | train | **diamants d'Afrique du Sud** | **retenu** A=`diamants` · B=`Afrique du Sud` (d'; NoDet+Def)<br>A=`diamants d'Afrique` · B=`Sud` (du; Det+Def) | A=`diamants` · B=`Afrique du Sud` (NoDet+Def) |
+
+### 3.2 Non tranchés
+
+Aucun.
 
 ## 4. Doublons exacts intra-fichier
 
@@ -64,7 +70,7 @@ Nombre de termes A et B distincts (formes normalisées, lignes non ambiguës) et
 | corpus_r_has_property-1 | 80 | 80 | 80 | 0 | 0 | — | — |
 | corpus_r_holonymie | 80 | 79 | 80 | 1 | 0 | — | — |
 | corpus_r_lieu | 80 | 79 | 78 | 1 | 2 | — | — |
-| corpus_r_lieu_origine | 78 | 74 | 78 | 4 | 0 | — | — |
+| corpus_r_lieu_origine | 80 | 76 | 80 | 4 | 0 | — | — |
 | corpus_r_objet_matiere | 80 | 75 | 80 | 4 | 0 | mur (3) | — |
 | corpus_r_own-1 | 80 | 79 | 80 | 1 | 0 | — | — |
 | corpus_r_processus_agent | 80 | 79 | 80 | 1 | 0 | — | — |
@@ -86,7 +92,7 @@ Règles (§4.4.2) : Det = du, de la, de l', des, d'un, d'une ; NoDet = de, d' ; 
 | corpus_r_has_property-1 | 78 | 2 | 0 | 0 |
 | corpus_r_holonymie | 80 | 0 | 0 | 0 |
 | corpus_r_lieu | 12 | 0 | 68 | 0 |
-| corpus_r_lieu_origine | 15 | 0 | 63 | 0 |
+| corpus_r_lieu_origine | 15 | 0 | 65 | 0 |
 | corpus_r_objet_matiere | 0 | 0 | 0 | 80 |
 | corpus_r_own-1 | 80 | 0 | 0 | 0 |
 | corpus_r_processus_agent | 80 | 0 | 0 | 0 |
@@ -96,7 +102,7 @@ Règles (§4.4.2) : Det = du, de la, de l', des, d'un, d'une ; NoDet = de, d' ; 
 | corpus_r_quantificateur | 0 | 0 | 0 | 80 |
 | corpus_r_social_tie | 80 | 0 | 0 | 0 |
 | corpus_r_topic | 8 | 0 | 1 | 71 |
-| **total** | **672** | **79** | **132** | **315** |
+| **total** | **672** | **79** | **134** | **315** |
 
 Contrôle des exemples du papier :
 
@@ -106,5 +112,5 @@ Contrôle des exemples du papier :
 
 ## 9. Fichier des termes
 
-`data/corpus/clean/termes.csv` : 2064 couples (terme, rôle) distincts, formes originales conservées. `nb_occurrences` compte les lignes non ambiguës ; `nb_candidats_ambigus` compte les apparitions comme candidat d'une ligne ambiguë. 8 terme(s) n'existent que comme candidats.
+`data/corpus/clean/termes.csv` : 2060 couples (terme, rôle) distincts, formes originales conservées. `nb_occurrences` compte les lignes non ambiguës ; `nb_candidats_ambigus` compte les apparitions comme candidat d'une ligne ambiguë. 0 terme(s) n'existent que comme candidats.
 

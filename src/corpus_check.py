@@ -40,6 +40,15 @@ AUTRE_DETERMINANT_RE = re.compile(
 # Combinaisons de définitude comptées par la section 8.
 COMBINAISONS_DEFINITUDE = ["Det+Def", "Det+NoDef", "NoDet+Def", "NoDet+NoDef"]
 
+# Découpages tranchés par la sonde JDM (reports/rapport_sonde_jdm.md, §7) : pour ces
+# syntagmes, un seul découpage a ses deux termes présents dans JeuxDeMots, le A du
+# découpage concurrent n'existant pas. Clé = syntagme normalisé, valeur = A retenu.
+# Le verdict vient d'une mesure, pas d'une intuition : ne pas en ajouter sans mesure.
+DECOUPAGES_ARBITRES = {
+    "cacao de côte d'ivoire": "cacao",
+    "diamants d'afrique du sud": "diamants",
+}
+
 # Exemples du papier, vérifiés à chaque exécution : (syntagme, résultat attendu).
 EXEMPLES_PAPIER = (
     ("chat du rabbin", "Det+Def"),
@@ -156,6 +165,18 @@ def decoupages_possibles(syntagme):
     return candidats
 
 
+def arbitrer(syntagme, candidats):
+    """Cherche le découpage tranché par la sonde pour ce syntagme. Retourne un candidat
+    ou None."""
+    a_retenu = DECOUPAGES_ARBITRES.get(normaliser(syntagme))
+    if not a_retenu:
+        return None
+    for candidat in candidats:
+        if normaliser(candidat["A"]) == a_retenu:
+            return candidat
+    return None
+
+
 def traiter_fichier(chemin):
     """Analyse un fichier source et découpe chaque syntagme. Retourne (lignes, anomalies)."""
     entrees, anomalies = analyser_fichier(chemin)
@@ -167,7 +188,7 @@ def traiter_fichier(chemin):
         ligne = {
             "syntagme": entree["syntagme"], "relation": entree["relation"], "split": split,
             "ligne": entree["ligne"], "candidats": candidats,
-            "A": "", "B": "", "det": "", "definitude": "", "ambigu": "non",
+            "A": "", "B": "", "det": "", "definitude": "", "ambigu": "non", "arbitre": "",
         }
         if not candidats:
             anomalies.append((entree["ligne"], "aucune préposition de séparation trouvée",
@@ -179,7 +200,14 @@ def traiter_fichier(chemin):
             if seul["remarque"]:
                 anomalies.append((entree["ligne"], seul["remarque"], entree["syntagme"]))
         else:
-            ligne["ambigu"] = "oui"
+            tranche = arbitrer(entree["syntagme"], candidats)
+            if tranche:
+                # Le découpage est tranché : la ligne redevient ordinaire. Les candidats
+                # rejetés restent dans le dict pour le rapport, pas dans le CSV nettoyé.
+                ligne.update(A=tranche["A"], B=tranche["B"], det=tranche["det"],
+                             definitude=tranche["definitude"], arbitre="sonde")
+            else:
+                ligne["ambigu"] = "oui"
         lignes.append(ligne)
     return lignes, anomalies
 
@@ -301,24 +329,47 @@ def section_anomalies(fichiers):
                                      "Aucune.") + [""]
 
 
+def decrire_candidats(ligne, a_retenu):
+    """Liste les découpages d'un syntagme ambigu, le retenu marqué. Retourne une chaîne."""
+    morceaux = []
+    for candidat in ligne["candidats"]:
+        texte = (f"A=`{candidat['A']}` · B=`{candidat['B']}` "
+                 f"({candidat['preposition']}; {candidat['det']}+{candidat['definitude']})")
+        if a_retenu and candidat["A"] == a_retenu:
+            texte = "**retenu** " + texte
+        morceaux.append(texte)
+    return "<br>".join(morceaux)
+
+
 def section_ambigus(fichiers):
     """Section 3 : syntagmes à plusieurs prépositions. Retourne une liste de lignes."""
     sortie = ["## 3. Cas ambigus (plusieurs prépositions)", "",
-              "Non tranchés ici : résolution via la base de connaissances à l'étape 2 (papier, §4.1). "
-              "Ces lignes ont A, B, det et definitude vides dans les CSV nettoyés ; les candidats sont "
-              "dans la colonne `candidats`.", ""]
-    corps = []
+              "Résolution via la base de connaissances (papier, §4.1) : le découpage retenu est "
+              "celui dont les deux termes existent dans JDM, mesuré par la sonde "
+              "(`reports/rapport_sonde_jdm.md`, §7) et reporté ici par `DECOUPAGES_ARBITRES`. "
+              "Une ligne tranchée est écrite comme une ligne ordinaire dans le CSV nettoyé "
+              "(`ambigu = non`, colonne `candidats` vide) ; seuls les termes du découpage retenu "
+              "entrent dans `termes.csv`. Une ligne non tranchée garde A, B, det et definitude "
+              "vides et ses candidats dans la colonne `candidats`.", ""]
+    tranchees, ouvertes = [], []
     for fichier in fichiers:
         for ligne in fichier["lignes"]:
-            if ligne["ambigu"] != "oui":
-                continue
-            candidats = "<br>".join(
-                f"A=`{c['A']}` · B=`{c['B']}` ({c['preposition']}; {c['det']}+{c['definitude']})"
-                for c in ligne["candidats"])
-            corps.append([fichier["nom"], ligne["ligne"], ligne["split"],
-                          f"**{ligne['syntagme']}**", candidats])
-    return sortie + tableau_ou_aucun(["fichier", "ligne", "split", "syntagme",
-                                      "découpages candidats"], corps) + [""]
+            if ligne["arbitre"]:
+                tranchees.append([fichier["nom"], ligne["ligne"], ligne["split"],
+                                  f"**{ligne['syntagme']}**",
+                                  decrire_candidats(ligne, ligne["A"]),
+                                  f"A=`{ligne['A']}` · B=`{ligne['B']}` "
+                                  f"({ligne['det']}+{ligne['definitude']})"])
+            elif ligne["ambigu"] == "oui":
+                ouvertes.append([fichier["nom"], ligne["ligne"], ligne["split"],
+                                 f"**{ligne['syntagme']}**", decrire_candidats(ligne, "")])
+    sortie += ["### 3.1 Tranchés par la sonde", ""]
+    sortie += tableau_ou_aucun(["fichier", "ligne", "split", "syntagme",
+                                "découpages candidats", "verdict"], tranchees)
+    sortie += ["", "### 3.2 Non tranchés", ""]
+    sortie += tableau_ou_aucun(["fichier", "ligne", "split", "syntagme",
+                                "découpages candidats"], ouvertes)
+    return sortie + [""]
 
 
 def section_doublons_intra(fichiers):

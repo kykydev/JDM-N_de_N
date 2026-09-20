@@ -24,7 +24,7 @@ adolescent,B,r_has_property-1,1,0
 adolescente,B,r_own-1,1,0
 adversaire,A,r_social_tie,1,0
 affiche,A,r_product_of,1,0
-Afrique du Sud,B,r_lieu>origine,0,1
+Afrique du Sud,B,r_lieu>origine,1,0
 Agen,B,r_lieu>origine,1,0
 agence,A,r_topic,1,0
 agence,B,r_social_tie,1,0
@@ -261,8 +261,7 @@ béquille,A,r_processus>instr-1,1,0
 bétail,B,r_processus_patient,1,0
 béton,B,r_objet>matiere,1,0
 cabinet,A,r_own-1,1,0
-cacao,A,r_lieu>origine,0,1
-cacao de Côte,A,r_lieu>origine,0,1
+cacao,A,r_lieu>origine,1,0
 Cachemire,B,r_lieu>origine,1,0
 cachemire,B,r_objet>matiere,1,0
 cadenas,B,r_processus>instr-1,1,0
@@ -554,7 +553,7 @@ curé,B,r_processus_agent,1,0
 cécité,A,r_has_causatif,1,0
 céramique,B,r_objet>matiere,1,0
 cérémonie,B,r_depict,1,0
-Côte d'Ivoire,B,r_lieu>origine,0,1
+Côte d'Ivoire,B,r_lieu>origine,1,0
 daim,B,r_objet>matiere,1,0
 dalle,A,r_objet>matiere,1,0
 danse,A,r_processus_agent,1,0
@@ -572,8 +571,7 @@ devoir,A,r_topic,1,0
 diagnostic,A,r_processus_agent,1,0
 diagramme,A,r_depict,1,0
 diamant,B,r_has_property-1,1,0
-diamants,A,r_lieu>origine,0,1
-diamants d'Afrique,A,r_lieu>origine,0,1
+diamants,A,r_lieu>origine,1,0
 dictionnaire,A,r_topic,1,0
 dictionnaire,B,r_holo,1,0
 diffusion,A,r_processus_patient,1,0
@@ -954,7 +952,6 @@ Islande,B,r_lieu,1,0
 Ispahan,B,r_lieu,1,0
 Istanbul,B,r_lieu,1,0
 Italie,B,r_lieu>origine,1,0
-Ivoire,B,r_lieu>origine,0,1
 ivoire,B,r_objet>matiere,1,0
 ivresse,A,r_has_causatif,1,0
 jade,B,r_objet>matiere,1,0
@@ -1748,7 +1745,6 @@ successeur,A,r_social_tie,1,0
 succès,B,r_has_causatif,1,0
 sucre,A,r_lieu>origine|r_product_of,2,0
 sucre,B,r_has_causatif|r_quantificateur,2,0
-Sud,B,r_lieu>origine,0,1
 sueur,A,r_has_causatif,1,0
 Suez,B,r_lieu,1,0
 suie,A,r_has_causatif,1,0
