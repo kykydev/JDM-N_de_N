@@ -4,7 +4,7 @@
 Lit data/corpus/raw/*.csv (jamais modifiés) et écrit data/corpus/variants/*.csv
 au même format « <syntagme> ; <relation> », même ordre, même nombre de lignes.
 
-Pour les huit types listés dans VARIABLE_TYPES seulement, environ 12,5 % des
+Pour les huit types listés dans TYPES_VARIABLES seulement, environ 12,5 % des
 lignes (stratifié train/test) reçoivent une variante de déterminant :
     « du X »    -> « d'un X »
     « de la X » -> « d'une X »
@@ -14,39 +14,35 @@ aucune détection de genre par dictionnaire. A, B et la relation sont inchangés
 Les autres fichiers sont recopiés à l'identique.
 
 Sélection déterministe : un unique random.Random(42), consommé dans un ordre fixe.
+Toute modification de cet ordre change les lignes tirées.
 
 Usage : python3 src/corpus_variants.py
 """
 
 import random
-import re
 import shutil
-from pathlib import Path
 
-from corpus_check import PREP_RE, RAW_DIR, ROOT, TRAIN_SIZE, norm, parse_file, split_candidates
+import config
+from corpus_check import (PREPOSITION_RE, analyser_fichier, chemin_relatif,
+                          decoupages_possibles, normaliser)
 
-VARIANTS_DIR = ROOT / "data" / "corpus" / "variants"
-REPORT_PATH = ROOT / "reports" / "variantes_definitude.md"
+CHEMIN_RAPPORT = config.DOSSIER_RAPPORTS / "variantes_definitude.md"
 
-SEED = 42
-# Lignes modifiées par split : 6/50 en train, 4/30 en test = 10/80 = 12,5 %.
-TARGET = {"train": 6, "test": 4}
-
-VARIABLE_TYPES = [
+TYPES_VARIABLES = [
     "r_holo", "r_own-1", "r_processus_agent", "r_processus_patient",
     "r_product_of", "r_social_tie", "r_has_property-1", "r_has_causatif",
 ]
 # Garde-fou : ces types ne doivent jamais être transformés.
-FROZEN_TYPES = {
+TYPES_GELES = {
     "r_topic", "r_depict", "r_lieu", "r_lieu>origine",
     "r_objet>matiere", "r_quantificateur",
 }
-assert not FROZEN_TYPES & set(VARIABLE_TYPES)
+assert not TYPES_GELES & set(TYPES_VARIABLES)
 
 # Syntagmes d'origine à ne jamais transformer (variante jugée non naturelle à la relecture,
 # ex. noms massifs ou référents uniques : « récolte du blé » -> « récolte d'un blé »).
 # Exclure une ligne ne change pas les autres tirages : la suivante dans l'ordre mélangé la remplace.
-EXCLUDED = {
+SYNTAGMES_EXCLUS = {
     "abattage du bétail",       # nom collectif
     "tamisage de la farine",    # nom massif
     "directeur du personnel",   # titre figé, nom collectif
@@ -59,140 +55,222 @@ EXCLUDED = {
 }
 
 # Préposition d'origine (normalisée) -> remplacements autorisés.
-REWRITES = {"du": ["d'un "], "de la": ["d'une "]}
-REWRITES_HOLO = {"du": ["d'un ", "de "], "de la": ["d'une "]}
+REECRITURES = {"du": ["d'un "], "de la": ["d'une "]}
+REECRITURES_HOLO = {"du": ["d'un ", "de "], "de la": ["d'une "]}
 
 
-def eligible_match(syntagme):
-    """Renvoie le match de la préposition si la ligne peut recevoir une variante, sinon None."""
-    cands = split_candidates(syntagme)
-    if len(cands) != 1:
+# ---------------------------------------------------------------------------
+# Éligibilité et réécriture d'une ligne
+# ---------------------------------------------------------------------------
+
+def preposition_eligible(syntagme):
+    """Cherche la préposition à réécrire dans un syntagme. Retourne le match de
+    PREPOSITION_RE si la ligne peut recevoir une variante, sinon None."""
+    candidats = decoupages_possibles(syntagme)
+    if len(candidats) != 1:
         return None  # ambigu ou non découpable
-    c = cands[0]
-    if norm(c["prep"]) not in REWRITES:
+    candidat = candidats[0]
+    if normaliser(candidat["preposition"]) not in REECRITURES:
         return None  # « de l' » (genre inconnu), « des » (pluriel), « de », « d' »
-    if c["B"][:1].isupper():
+    if candidat["B"][:1].isupper():
         return None  # entité nommée
-    matches = [m for m in PREP_RE.finditer(syntagme) if syntagme[:m.start()].strip() == c["A"]]
-    return matches[0] if len(matches) == 1 else None
+    trouvees = [m for m in PREPOSITION_RE.finditer(syntagme)
+                if syntagme[:m.start()].strip() == candidat["A"]]
+    return trouvees[0] if len(trouvees) == 1 else None
 
 
-def rewrite_line(raw_line, syntagme, m, new_prep):
-    """Remplace uniquement la préposition dans la ligne brute ; le reste est conservé tel quel."""
-    start = raw_line.index(syntagme)
-    new_syntagme = syntagme[:m.start()] + new_prep + syntagme[m.end():]
-    return raw_line[:start] + new_syntagme + raw_line[start + len(syntagme):], new_syntagme
+def reecrire_ligne(ligne_brute, syntagme, trouvee, nouvelle_preposition):
+    """Remplace uniquement la préposition dans la ligne brute ; le reste est conservé tel
+    quel. Retourne (ligne réécrite, nouveau syntagme)."""
+    debut = ligne_brute.index(syntagme)
+    nouveau_syntagme = (syntagme[:trouvee.start()] + nouvelle_preposition
+                        + syntagme[trouvee.end():])
+    fin = ligne_brute[debut + len(syntagme):]
+    return ligne_brute[:debut] + nouveau_syntagme + fin, nouveau_syntagme
 
 
-def check_invariants(before, after):
-    """A, B et relation strictement identiques ; seule la préposition change."""
-    cb, ca = split_candidates(before), split_candidates(after)
-    assert len(cb) == 1 and len(ca) == 1, (before, after)
-    assert (cb[0]["A"], cb[0]["B"]) == (ca[0]["A"], ca[0]["B"]), (before, after)
-    assert cb[0]["prep"] != ca[0]["prep"] or cb[0]["det"] != ca[0]["det"], (before, after)
+def verifier_invariants(avant, apres):
+    """Vérifie que A, B et la relation sont inchangés et que seule la préposition varie.
+    Lève AssertionError sinon. Ne retourne rien."""
+    candidats_avant = decoupages_possibles(avant)
+    candidats_apres = decoupages_possibles(apres)
+    assert len(candidats_avant) == 1 and len(candidats_apres) == 1, (avant, apres)
+    assert (candidats_avant[0]["A"], candidats_avant[0]["B"]) \
+        == (candidats_apres[0]["A"], candidats_apres[0]["B"]), (avant, apres)
+    assert candidats_avant[0]["preposition"] != candidats_apres[0]["preposition"] \
+        or candidats_avant[0]["det"] != candidats_apres[0]["det"], (avant, apres)
 
 
-def process_variable(path, relation, rng):
-    raw_lines = path.read_text(encoding="utf-8").split("\n")
-    entries, issues = parse_file(path)
-    assert not issues, f"{path.name} : lignes malformées, corriger d'abord ({issues})"
-    assert {e["relation"] for e in entries} == {relation}
+# ---------------------------------------------------------------------------
+# Traitement d'un type de relation
+# ---------------------------------------------------------------------------
 
-    # Le mélange porte sur les candidats avant exclusion manuelle : la consommation du
-    # générateur ne dépend donc pas de EXCLUDED, et une exclusion ne décale aucun autre tirage.
-    pools = {"train": [], "test": []}
-    for e in entries:
-        m = eligible_match(e["syntagme"])
-        if m:
-            pools["train" if e["lineno"] <= TRAIN_SIZE else "test"].append((e, m))
+def viviers_eligibles(entrees):
+    """Range les lignes éligibles par split. Retourne {split: [(entrée, match)]}."""
+    viviers = {"train": [], "test": []}
+    for entree in entrees:
+        trouvee = preposition_eligible(entree["syntagme"])
+        if trouvee:
+            split = "train" if entree["ligne"] <= config.TAILLE_TRAIN else "test"
+            viviers[split].append((entree, trouvee))
+    return viviers
 
-    table = REWRITES_HOLO if relation == "r_holo" else REWRITES
-    changes, shortfalls = [], []
+
+def tirer_lignes_a_modifier(vivier, table_reecritures, cible, rng):
+    """Tire les lignes à modifier dans un vivier. Retourne [(entrée, match, préposition)].
+
+    Le mélange porte sur les candidats AVANT exclusion manuelle, et une variante est tirée
+    pour chaque candidat, exclu ou non : la consommation du générateur ne dépend donc pas
+    de SYNTAGMES_EXCLUS, et exclure une ligne ne décale aucun autre tirage."""
+    ordre = rng.sample(vivier, len(vivier))
+    variantes = []
+    for _, trouvee in ordre:
+        variantes.append(rng.choice(table_reecritures[normaliser(trouvee.group("prep"))]))
+    retenues = []
+    for (entree, trouvee), variante in zip(ordre, variantes):
+        if entree["syntagme"] not in SYNTAGMES_EXCLUS:
+            retenues.append((entree, trouvee, variante))
+    return retenues[:cible]
+
+
+def traiter_type_variable(chemin, relation, rng):
+    """Écrit la variante d'un type de relation. Retourne {eligibles, modifications, manques}."""
+    lignes_brutes = chemin.read_text(encoding="utf-8").split("\n")
+    entrees, anomalies = analyser_fichier(chemin)
+    assert not anomalies, f"{chemin.name} : lignes malformées, corriger d'abord ({anomalies})"
+    assert {e["relation"] for e in entrees} == {relation}
+
+    viviers = viviers_eligibles(entrees)
+    table = REECRITURES_HOLO if relation == "r_holo" else REECRITURES
+    modifications, manques = [], []
     for split in ("train", "test"):
-        order = rng.sample(pools[split], len(pools[split]))
-        # Un tirage de variante par candidat, exclu ou non, pour la même raison.
-        choices = [rng.choice(table[norm(m.group("prep"))]) for _, m in order]
-        picked = [(e, m, c) for (e, m), c in zip(order, choices)
-                  if e["syntagme"] not in EXCLUDED][:TARGET[split]]
-        if len(picked) < TARGET[split]:
-            shortfalls.append(f"{split} : {len(picked)} ligne(s) éligible(s) pour {TARGET[split]} visées")
-        for e, m, new_prep in sorted(picked, key=lambda x: x[0]["lineno"]):
-            idx = e["lineno"] - 1
-            raw_lines[idx], new_syntagme = rewrite_line(raw_lines[idx], e["syntagme"], m, new_prep)
-            check_invariants(e["syntagme"], new_syntagme)
-            changes.append({"lineno": e["lineno"], "split": split,
-                            "before": e["syntagme"], "after": new_syntagme})
+        cible = config.CIBLE_VARIANTES[split]
+        retenues = tirer_lignes_a_modifier(viviers[split], table, cible, rng)
+        if len(retenues) < cible:
+            manques.append(f"{split} : {len(retenues)} ligne(s) éligible(s) pour {cible} visées")
+        for entree, trouvee, variante in sorted(retenues, key=lambda x: x[0]["ligne"]):
+            indice = entree["ligne"] - 1
+            lignes_brutes[indice], nouveau = reecrire_ligne(
+                lignes_brutes[indice], entree["syntagme"], trouvee, variante)
+            verifier_invariants(entree["syntagme"], nouveau)
+            modifications.append({"ligne": entree["ligne"], "split": split,
+                                  "avant": entree["syntagme"], "apres": nouveau})
 
-    out = VARIANTS_DIR / path.name
-    out.write_text("\n".join(raw_lines), encoding="utf-8")
-    assert len(out.read_bytes().split(b"\n")) == len(path.read_bytes().split(b"\n"))
-    eligible = {s: sum(1 for e, _ in p if e["syntagme"] not in EXCLUDED) for s, p in pools.items()}
-    return {"eligible": eligible, "changes": changes, "shortfalls": shortfalls}
+    sortie = config.DOSSIER_CORPUS_VARIANTES / chemin.name
+    sortie.write_text("\n".join(lignes_brutes), encoding="utf-8")
+    assert len(sortie.read_bytes().split(b"\n")) == len(chemin.read_bytes().split(b"\n"))
+
+    eligibles = {}
+    for split, vivier in viviers.items():
+        eligibles[split] = sum(1 for entree, _ in vivier
+                               if entree["syntagme"] not in SYNTAGMES_EXCLUS)
+    return {"eligibles": eligibles, "modifications": modifications, "manques": manques}
 
 
-def build_report(results, n_lines):
-    L = ["# Variantes de définitude", "",
-         "Généré par `src/corpus_variants.py` (graine `random.Random(42)`). Source : `data/corpus/raw/` "
-         "(inchangé). Sortie : `data/corpus/variants/`.", "",
-         "Transformations : `du X` → `d'un X`, `de la X` → `d'une X` ; pour `r_holo` seulement, "
-         "`du X` peut aussi devenir `de X` (tirage 50/50). Lignes éligibles : découpage non ambigu, "
-         "préposition `du` ou `de la`, B sans majuscule initiale. `de l'` est exclu (genre non "
-         "déductible du déterminant), `des` aussi (pluriel).", "",
-         f"Cible : {TARGET['train']} lignes en train et {TARGET['test']} en test par type, soit "
-         f"{sum(TARGET.values())}/80 = {100 * sum(TARGET.values()) / 80:.1f} %.", "",
-         f"Exclusions manuelles (`EXCLUDED`) : {len(EXCLUDED)}"
-         + (" — " + ", ".join(f"« {s} »" for s in sorted(EXCLUDED)) if EXCLUDED else "") + ".", "",
-         "Types recopiés sans modification : " + ", ".join(f"`{t}`" for t in sorted(FROZEN_TYPES)) + ".", "",
-         "## Synthèse", "",
-         "| relation | fichier | éligibles train | éligibles test | modifiées train | modifiées test | total | % |",
-         "|---|---|---|---|---|---|---|---|"]
-    for rel, name, res in results:
-        ch = res["changes"]
-        tr = sum(c["split"] == "train" for c in ch)
-        L.append(f"| {rel} | {name} | {res['eligible']['train']} | {res['eligible']['test']} | "
-                 f"{tr} | {len(ch) - tr} | {len(ch)} | {100 * len(ch) / n_lines[name]:.1f} |")
-    shortfalls = [(rel, s) for rel, _, res in results for s in res["shortfalls"]]
-    if shortfalls:
-        L += ["", "**Cible non atteinte :**", ""] + [f"- {rel} — {s}" for rel, s in shortfalls]
-    L += [""]
-    for rel, name, res in results:
-        L += [f"## {rel}", "", f"Fichier `{name}.csv`, {len(res['changes'])} ligne(s) modifiée(s).", "",
-              "| ligne | split | avant | après |", "|---|---|---|---|"]
-        L += [f"| {c['lineno']} | {c['split']} | {c['before']} | {c['after']} |" for c in res["changes"]]
-        L += [""]
-    return "\n".join(L)
+# ---------------------------------------------------------------------------
+# Rapport
+# ---------------------------------------------------------------------------
+
+def section_entete():
+    """En-tête et règles appliquées. Retourne une liste de lignes."""
+    cible_train = config.CIBLE_VARIANTES["train"]
+    cible_test = config.CIBLE_VARIANTES["test"]
+    total_cible = cible_train + cible_test
+    exclusions = ", ".join(f"« {s} »" for s in sorted(SYNTAGMES_EXCLUS))
+    return ["# Variantes de définitude", "",
+            "Généré par `src/corpus_variants.py` (graine `random.Random(42)`). Source : `data/corpus/raw/` "
+            "(inchangé). Sortie : `data/corpus/variants/`.", "",
+            "Transformations : `du X` → `d'un X`, `de la X` → `d'une X` ; pour `r_holo` seulement, "
+            "`du X` peut aussi devenir `de X` (tirage 50/50). Lignes éligibles : découpage non ambigu, "
+            "préposition `du` ou `de la`, B sans majuscule initiale. `de l'` est exclu (genre non "
+            "déductible du déterminant), `des` aussi (pluriel).", "",
+            f"Cible : {cible_train} lignes en train et {cible_test} en test par type, soit "
+            f"{total_cible}/80 = {100 * total_cible / 80:.1f} %.", "",
+            f"Exclusions manuelles (`SYNTAGMES_EXCLUS`) : {len(SYNTAGMES_EXCLUS)}"
+            + (" — " + exclusions if SYNTAGMES_EXCLUS else "") + ".", "",
+            "Types recopiés sans modification : "
+            + ", ".join(f"`{t}`" for t in sorted(TYPES_GELES)) + ".", ""]
+
+
+def section_synthese(resultats, nb_lignes):
+    """Tableau de synthèse et cibles non atteintes. Retourne une liste de lignes."""
+    lignes = ["## Synthèse", "",
+              "| relation | fichier | éligibles train | éligibles test | modifiées train | "
+              "modifiées test | total | % |",
+              "|---|---|---|---|---|---|---|---|"]
+    for relation, nom, resultat in resultats:
+        modifications = resultat["modifications"]
+        n_train = sum(m["split"] == "train" for m in modifications)
+        part = 100 * len(modifications) / nb_lignes[nom]
+        lignes.append(f"| {relation} | {nom} | {resultat['eligibles']['train']} | "
+                      f"{resultat['eligibles']['test']} | {n_train} | "
+                      f"{len(modifications) - n_train} | {len(modifications)} | {part:.1f} |")
+    manques = [(relation, m) for relation, _, resultat in resultats for m in resultat["manques"]]
+    if manques:
+        lignes += ["", "**Cible non atteinte :**", ""]
+        lignes += [f"- {relation} — {m}" for relation, m in manques]
+    return lignes + [""]
+
+
+def section_detail(resultats):
+    """Détail ligne à ligne par type de relation. Retourne une liste de lignes."""
+    lignes = []
+    for relation, nom, resultat in resultats:
+        modifications = resultat["modifications"]
+        lignes += [f"## {relation}", "",
+                   f"Fichier `{nom}.csv`, {len(modifications)} ligne(s) modifiée(s).", "",
+                   "| ligne | split | avant | après |", "|---|---|---|---|"]
+        for m in modifications:
+            lignes.append(f"| {m['ligne']} | {m['split']} | {m['avant']} | {m['apres']} |")
+        lignes += [""]
+    return lignes
+
+
+def construire_rapport(resultats, nb_lignes):
+    """Assemble le rapport des variantes. Retourne le texte Markdown complet."""
+    lignes = section_entete()
+    lignes += section_synthese(resultats, nb_lignes)
+    lignes += section_detail(resultats)
+    return "\n".join(lignes)
+
+
+def indexer_sources():
+    """Associe chaque relation à son fichier source. Retourne (relation -> chemin,
+    nom de fichier -> nombre de lignes)."""
+    par_relation, nb_lignes = {}, {}
+    for chemin in sorted(config.DOSSIER_CORPUS_BRUT.glob("*.csv")):
+        entrees, _ = analyser_fichier(chemin)
+        etiquettes = {e["relation"] for e in entrees}
+        assert len(etiquettes) == 1, f"{chemin.name} : plusieurs relations {etiquettes}"
+        par_relation[etiquettes.pop()] = chemin
+        nb_lignes[chemin.stem] = len(chemin.read_bytes().splitlines())
+    return par_relation, nb_lignes
 
 
 def main():
-    VARIANTS_DIR.mkdir(parents=True, exist_ok=True)
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    config.DOSSIER_CORPUS_VARIANTES.mkdir(parents=True, exist_ok=True)
+    CHEMIN_RAPPORT.parent.mkdir(parents=True, exist_ok=True)
 
-    by_relation, n_lines = {}, {}
-    for path in sorted(RAW_DIR.glob("*.csv")):
-        entries, _ = parse_file(path)
-        labels = {e["relation"] for e in entries}
-        assert len(labels) == 1, f"{path.name} : plusieurs relations {labels}"
-        by_relation[labels.pop()] = path
-        n_lines[path.stem] = len(path.read_bytes().splitlines())
+    par_relation, nb_lignes = indexer_sources()
+    absents = set(TYPES_VARIABLES) - set(par_relation)
+    assert not absents, f"types introuvables : {absents}"
 
-    missing = set(VARIABLE_TYPES) - set(by_relation)
-    assert not missing, f"types introuvables : {missing}"
+    rng = random.Random(config.GRAINE_ALEATOIRE)
+    resultats = []
+    for relation in TYPES_VARIABLES:  # ordre fixe => tirages reproductibles
+        chemin = par_relation[relation]
+        resultats.append((relation, chemin.stem, traiter_type_variable(chemin, relation, rng)))
 
-    rng = random.Random(SEED)
-    results = []
-    for rel in VARIABLE_TYPES:  # ordre fixe => tirages reproductibles
-        path = by_relation[rel]
-        results.append((rel, path.stem, process_variable(path, rel, rng)))
+    for relation, chemin in sorted(par_relation.items()):
+        if relation not in TYPES_VARIABLES:
+            shutil.copyfile(chemin, config.DOSSIER_CORPUS_VARIANTES / chemin.name)
 
-    for rel, path in sorted(by_relation.items()):
-        if rel not in VARIABLE_TYPES:
-            shutil.copyfile(path, VARIANTS_DIR / path.name)
-
-    REPORT_PATH.write_text(build_report(results, n_lines) + "\n", encoding="utf-8")
-    total = sum(len(res["changes"]) for _, _, res in results)
-    print(f"{total} lignes modifiées sur {len(VARIABLE_TYPES)} types ; "
-          f"{len(by_relation) - len(VARIABLE_TYPES)} fichiers recopiés à l'identique.")
-    print(f"Rapport : {REPORT_PATH.relative_to(ROOT)}")
+    CHEMIN_RAPPORT.write_text(construire_rapport(resultats, nb_lignes) + "\n", encoding="utf-8")
+    total = sum(len(resultat["modifications"]) for _, _, resultat in resultats)
+    recopies = len(par_relation) - len(TYPES_VARIABLES)
+    print(f"{total} lignes modifiées sur {len(TYPES_VARIABLES)} types ; "
+          f"{recopies} fichiers recopiés à l'identique.")
+    print(f"Rapport : {chemin_relatif(CHEMIN_RAPPORT)}")
 
 
 if __name__ == "__main__":

@@ -12,10 +12,12 @@
 
 Particularités de l'API constatées le 2026-09-18 (voir reports/rapport_sonde_jdm.md) :
 - un nœud inexistant renvoie HTTP 500 avec {"status_code": 404, "detail": "... not found!"} ;
-- combiner `relation_fields` et `types_ids` provoque une erreur 500 côté serveur ;
+- `relation_fields` doit contenir `w`, sinon le serveur répond 500 (mesuré en phase 2 :
+  ce n'est pas la combinaison avec `types_ids` qui plante, contrairement à ce que la
+  sonde avait supposé) ;
 - les poids de relation peuvent être négatifs (relation niée).
 
-Bibliothèque standard uniquement.
+Aucun appel réseau n'est fait à l'import. Bibliothèque standard uniquement.
 """
 
 import hashlib
@@ -28,206 +30,285 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-BASE_URL = "https://jdm-api.demo.lirmm.fr/v0"
-CACHE_DIR = ROOT / "data" / "cache" / "jdm"
-LOG_PATH = ROOT / "logs" / "jdm_calls.log"
+import config
 
 log = logging.getLogger("jdm")
 
 
-class JDMNotFound(Exception):
+class JDMIntrouvable(Exception):
     """Le nœud demandé n'existe pas dans JDM."""
 
 
-class JDMError(Exception):
+class JDMErreur(Exception):
     """Échec après tous les essais (réseau, 5xx, réponse illisible)."""
 
 
-def _setup_logging():
+# ---------------------------------------------------------------------------
+# Journalisation
+# ---------------------------------------------------------------------------
+
+def preparer_journal():
+    """Branche le journal des appels sur logs/jdm_calls.log, une seule fois. Ne retourne rien."""
     if log.handlers:
         return
-    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    handler = logging.FileHandler(LOG_PATH, encoding="utf-8")
+    config.FICHIER_LOG_APPELS.parent.mkdir(parents=True, exist_ok=True)
+    handler = logging.FileHandler(config.FICHIER_LOG_APPELS, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     log.addHandler(handler)
     log.setLevel(logging.INFO)
 
 
-def _is_not_found(status, body):
-    if status == 404:
+# ---------------------------------------------------------------------------
+# Nommage des fichiers de cache
+# ---------------------------------------------------------------------------
+#
+# ATTENTION : les deux fonctions qui suivent déterminent le nom de chaque fichier du
+# cache. Le cache représente deux heures de requêtes. Toute modification de leur calcul,
+# fût-elle cosmétique, rend les 9 398 fichiers déjà écrits introuvables et oblige à tout
+# recollecter. Leur corps est repris au caractère près de la version initiale.
+
+def normaliser_parametres(params):
+    """Paramètres -> liste triée de paires (les listes deviennent des clés répétées)."""
+    paires = []
+    for cle, valeur in (params or {}).items():
+        if valeur is None:
+            continue
+        valeurs = valeur if isinstance(valeur, (list, tuple)) else [valeur]
+        for v in valeurs:
+            paires.append((cle, str(v).lower() if isinstance(v, bool) else str(v)))
+    return sorted(paires)
+
+
+def chemin_cache(dossier_cache, chemin, paires):
+    """Fichier de cache d'une requête, nommé par le SHA-256 du chemin et des paramètres."""
+    cle = json.dumps({"path": chemin, "params": paires}, ensure_ascii=False, sort_keys=True)
+    return dossier_cache / (hashlib.sha256(cle.encode("utf-8")).hexdigest() + ".json")
+
+
+# ---------------------------------------------------------------------------
+# Lecture des réponses HTTP
+# ---------------------------------------------------------------------------
+
+def est_introuvable(statut, corps):
+    """Dit si la réponse signale un nœud inexistant. Retourne un booléen.
+
+    JDM renvoie un 500 dont le corps porte `status_code: 404`, d'où la lecture du corps."""
+    if statut == 404:
         return True
     try:
-        payload = json.loads(body)
+        charge = json.loads(corps)
     except (ValueError, TypeError):
         return False
-    return isinstance(payload, dict) and (
-        payload.get("status_code") == 404 or "not found" in str(payload.get("detail", "")).lower())
+    return isinstance(charge, dict) and (
+        charge.get("status_code") == 404 or "not found" in str(charge.get("detail", "")).lower())
 
 
-class JDMClient:
-    def __init__(self, base_url=BASE_URL, cache_dir=CACHE_DIR, delay=0.3, timeout=10.0,
-                 retries=3, backoff=1.0, offline=False):
-        self.base_url = base_url.rstrip("/")
-        self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.delay = delay
+def construire_url(url_base, chemin, paires):
+    """Assemble l'URL complète d'une requête. Retourne une chaîne."""
+    return url_base + chemin + ("?" + urllib.parse.urlencode(paires) if paires else "")
+
+
+def executer_requete(url, timeout):
+    """Fait un appel HTTP. Retourne (statut, corps, exception) : exception non nulle si
+    l'appel n'a pas abouti du tout (réseau, timeout), sinon statut et corps sont remplis."""
+    try:
+        requete = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(requete, timeout=timeout) as reponse:
+            return reponse.status, reponse.read(), None
+    except urllib.error.HTTPError as e:
+        return e.code, e.read(), None
+    except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+        return None, b"", e
+
+
+def encoder_segment(nom):
+    """Encode un nom de nœud pour l'insérer dans un chemin d'URL. Retourne une chaîne."""
+    return urllib.parse.quote(nom, safe="")
+
+
+# ---------------------------------------------------------------------------
+# Client
+# ---------------------------------------------------------------------------
+
+class ClientJDM:
+    """Client HTTP avec cache disque, délai de politesse et nouvelle tentative sur 5xx."""
+
+    def __init__(self, url_base=config.URL_BASE_JDM, dossier_cache=config.DOSSIER_CACHE_JDM,
+                 delai=config.DELAI_POLITESSE, timeout=config.TIMEOUT_DEFAUT,
+                 essais=config.NB_ESSAIS, backoff=config.BACKOFF, hors_ligne=False):
+        self.url_base = url_base.rstrip("/")
+        self.dossier_cache = Path(dossier_cache)
+        self.dossier_cache.mkdir(parents=True, exist_ok=True)
+        self.delai = delai
         self.timeout = timeout
-        self.retries = retries
+        self.essais = essais
         self.backoff = backoff
-        self.offline = offline  # True : lève une erreur plutôt que d'appeler le réseau
-        self._last_call = 0.0
-        self.calls = []  # une entrée par requête servie (cache ou réseau)
-        _setup_logging()
+        self.hors_ligne = hors_ligne  # True : lève une erreur plutôt que d'appeler le réseau
+        self._dernier_appel = 0.0
+        self.appels = []  # une entrée par requête servie (cache ou réseau)
+        preparer_journal()
 
-    # ------------------------------------------------------------------ bas niveau
+    # ------------------------------------------------------------------ cache
 
-    @staticmethod
-    def _norm_params(params):
-        """Paramètres -> liste triée de paires (les listes deviennent des clés répétées)."""
-        pairs = []
-        for key, value in (params or {}).items():
-            if value is None:
-                continue
-            values = value if isinstance(value, (list, tuple)) else [value]
-            for v in values:
-                pairs.append((key, str(v).lower() if isinstance(v, bool) else str(v)))
-        return sorted(pairs)
+    def _lire_cache(self, fichier):
+        """Lit une réponse déjà en cache. Retourne l'entrée, ou None si absente du cache."""
+        if not fichier.exists():
+            return None
+        return json.loads(fichier.read_text(encoding="utf-8"))
 
-    def _cache_path(self, path, pairs):
-        key = json.dumps({"path": path, "params": pairs}, ensure_ascii=False, sort_keys=True)
-        return self.cache_dir / (hashlib.sha256(key.encode("utf-8")).hexdigest() + ".json")
+    def _ecrire_cache(self, fichier, chemin, paires, statut, donnees, duree, taille):
+        """Écrit une réponse dans le cache, par fichier temporaire puis renommage atomique."""
+        entree = {"request": {"path": chemin, "params": paires}, "status": statut,
+                  "elapsed_s": round(duree, 4), "bytes": taille, "data": donnees}
+        temporaire = fichier.with_suffix(".tmp")
+        temporaire.write_text(json.dumps(entree, ensure_ascii=False), encoding="utf-8")
+        temporaire.replace(fichier)
+
+    def _noter_appel(self, chemin, depuis_cache, statut, duree, taille):
+        """Ajoute une ligne au relevé des requêtes servies, pour les statistiques. Ne retourne rien."""
+        self.appels.append({"path": chemin, "cached": depuis_cache, "status": statut,
+                           "elapsed_s": duree, "bytes": taille})
+
+    # ------------------------------------------------------------------ réseau
+
+    def _attendre_politesse(self):
+        """Attend que le délai minimal depuis le dernier appel réel soit écoulé. Ne retourne rien."""
+        reste = self.delai - (time.monotonic() - self._dernier_appel)
+        if reste > 0:
+            time.sleep(reste)
+
+    def _tenter_appel(self, url, timeout, numero_essai):
+        """Fait un appel réseau, le chronomètre et le journalise. Retourne (statut, corps, exception, durée)."""
+        self._attendre_politesse()
+        debut = time.monotonic()
+        statut, corps, exception = executer_requete(url, timeout)
+        duree = time.monotonic() - debut
+        self._dernier_appel = time.monotonic()
+        log.info("GET %s status=%s elapsed=%.3fs bytes=%d attempt=%d%s", url, statut, duree,
+                 len(corps), numero_essai, f" exc={exception!r}" if exception else "")
+        return statut, corps, exception, duree
+
+    # ------------------------------------------------------------------ requête complète
 
     def _get(self, path, params=None, timeout=None):
-        pairs = self._norm_params(params)
-        cache_file = self._cache_path(path, pairs)
-        if cache_file.exists():
-            entry = json.loads(cache_file.read_text(encoding="utf-8"))
-            self.calls.append({"path": path, "cached": True, "status": entry["status"],
-                               "elapsed_s": entry.get("elapsed_s"), "bytes": entry.get("bytes")})
-            if entry["status"] == "not_found":
-                raise JDMNotFound(path)
-            return entry["data"]
-        if self.offline:
-            raise JDMError(f"hors-ligne et absent du cache : {path} {pairs}")
+        """Sert une requête : cache d'abord, sinon réseau avec nouvelles tentatives.
+        Retourne les données JSON. Lève JDMIntrouvable si le nœud n'existe pas, JDMErreur sinon."""
+        paires = normaliser_parametres(params)
+        fichier = chemin_cache(self.dossier_cache, path, paires)
 
-        url = self.base_url + path + ("?" + urllib.parse.urlencode(pairs) if pairs else "")
+        entree = self._lire_cache(fichier)
+        if entree is not None:
+            self._noter_appel(path, True, entree["status"], entree.get("elapsed_s"),
+                              entree.get("bytes"))
+            if entree["status"] == "not_found":
+                raise JDMIntrouvable(path)
+            return entree["data"]
+
+        if self.hors_ligne:
+            raise JDMErreur(f"hors-ligne et absent du cache : {path} {paires}")
+
+        url = construire_url(self.url_base, path, paires)
         timeout = timeout or self.timeout
-        last_exc = None
-        for attempt in range(self.retries):
-            wait = self.delay - (time.monotonic() - self._last_call)
-            if wait > 0:
-                time.sleep(wait)
-            t0 = time.monotonic()
-            status, body, exc = None, b"", None
-            try:
-                with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}),
-                                            timeout=timeout) as resp:
-                    status, body = resp.status, resp.read()
-            except urllib.error.HTTPError as e:
-                status, body = e.code, e.read()
-            except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
-                exc = e
-            elapsed = time.monotonic() - t0
-            self._last_call = time.monotonic()
-            log.info("GET %s status=%s elapsed=%.3fs bytes=%d attempt=%d%s", url, status, elapsed,
-                     len(body), attempt + 1, f" exc={exc!r}" if exc else "")
+        derniere_erreur = None
+        for essai in range(self.essais):
+            statut, corps, exception, duree = self._tenter_appel(url, timeout, essai + 1)
 
-            if exc is None and status is not None:
-                if _is_not_found(status, body):
-                    self._store(cache_file, path, pairs, "not_found", None, elapsed, len(body))
-                    self.calls.append({"path": path, "cached": False, "status": "not_found",
-                                       "elapsed_s": elapsed, "bytes": len(body)})
-                    raise JDMNotFound(path)
-                if 200 <= status < 300:
+            if exception is None and statut is not None:
+                if est_introuvable(statut, corps):
+                    self._ecrire_cache(fichier, path, paires, "not_found", None, duree, len(corps))
+                    self._noter_appel(path, False, "not_found", duree, len(corps))
+                    raise JDMIntrouvable(path)
+                if 200 <= statut < 300:
                     try:
-                        data = json.loads(body)
+                        donnees = json.loads(corps)
                     except ValueError as e:
-                        exc = e
+                        exception = e  # réponse illisible : on réessaie comme sur une panne
                     else:
-                        self._store(cache_file, path, pairs, "ok", data, elapsed, len(body))
-                        self.calls.append({"path": path, "cached": False, "status": "ok",
-                                           "elapsed_s": elapsed, "bytes": len(body)})
-                        return data
-                elif status < 500:
-                    raise JDMError(f"HTTP {status} sur {url} : {body[:200]!r}")
-            last_exc = exc or JDMError(f"HTTP {status} sur {url}")
-            if attempt + 1 < self.retries:
-                pause = self.backoff * 2 ** attempt
-                log.warning("nouvel essai dans %.1fs (%r)", pause, last_exc)
-                time.sleep(pause)
-        self.calls.append({"path": path, "cached": False, "status": "error", "elapsed_s": None, "bytes": 0})
-        raise JDMError(f"échec après {self.retries} essais : {url} ({last_exc!r})")
+                        self._ecrire_cache(fichier, path, paires, "ok", donnees, duree, len(corps))
+                        self._noter_appel(path, False, "ok", duree, len(corps))
+                        return donnees
+                elif statut < 500:
+                    raise JDMErreur(f"HTTP {statut} sur {url} : {corps[:200]!r}")
 
-    def _store(self, cache_file, path, pairs, status, data, elapsed, size):
-        entry = {"request": {"path": path, "params": pairs}, "status": status,
-                 "elapsed_s": round(elapsed, 4), "bytes": size, "data": data}
-        tmp = cache_file.with_suffix(".tmp")
-        tmp.write_text(json.dumps(entry, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(cache_file)
+            derniere_erreur = exception or JDMErreur(f"HTTP {statut} sur {url}")
+            if essai + 1 < self.essais:
+                attente = self.backoff * 2 ** essai
+                log.warning("nouvel essai dans %.1fs (%r)", attente, derniere_erreur)
+                time.sleep(attente)
 
-    @staticmethod
-    def _q(name):
-        return urllib.parse.quote(name, safe="")
+        self._noter_appel(path, False, "error", None, 0)
+        raise JDMErreur(f"échec après {self.essais} essais : {url} ({derniere_erreur!r})")
 
     # ------------------------------------------------------------------ API
 
-    def relation_types(self):
+    def types_de_relations(self):
+        """Récupère la liste des types de relations de JDM. Retourne une liste de dicts."""
         return self._get("/relations_types")
 
-    def node_types(self):
+    def types_de_noeuds(self):
+        """Récupère la liste des types de nœuds de JDM. Retourne une liste de dicts."""
         return self._get("/nodes_types")
 
-    def node_by_name(self, name):
-        return self._get(f"/node_by_name/{self._q(name)}")
+    def noeud_par_nom(self, nom):
+        """Récupère le nœud portant ce nom. Retourne le dict du nœud, ou lève JDMIntrouvable."""
+        return self._get(f"/node_by_name/{encoder_segment(nom)}")
 
-    def node_by_id(self, node_id):
-        return self._get(f"/node_by_id/{int(node_id)}")
+    def noeud_par_id(self, id_noeud):
+        """Récupère le nœud portant cet identifiant. Retourne le dict du nœud."""
+        return self._get(f"/node_by_id/{int(id_noeud)}")
 
-    def refinements(self, name):
-        """{nodes, refinements} : `refinements` liste les nœuds « terme>id[>id] »."""
-        return self._get(f"/refinements/{self._q(name)}")
+    def raffinements(self, nom):
+        """Récupère les raffinements d'un terme. Retourne {nodes, refinements}.
 
-    def relations_from(self, name, types_ids=None, timeout=None, **params):
-        """Relations sortantes {nodes, relations}. Ne pas combiner types_ids et relation_fields."""
-        return self._get(f"/relations/from/{self._q(name)}", {"types_ids": types_ids, **params}, timeout)
+        Plante côté serveur quand un raffinement est nommé « terme>glose » : la sonde
+        mesure donc la polysémie par r_raff_sem sortant plutôt que par cet endpoint."""
+        return self._get(f"/refinements/{encoder_segment(nom)}")
 
-    def relations_to(self, name, types_ids=None, timeout=None, **params):
-        """Relations entrantes {nodes, relations}. Ne pas combiner types_ids et relation_fields."""
-        return self._get(f"/relations/to/{self._q(name)}", {"types_ids": types_ids, **params}, timeout)
+    def relations_sortantes(self, nom, types_ids=None, timeout=None, **parametres):
+        """Récupère les relations sortantes d'un terme. Retourne {nodes, relations}."""
+        return self._get(f"/relations/from/{encoder_segment(nom)}",
+                         {"types_ids": types_ids, **parametres}, timeout)
+
+    def relations_entrantes(self, nom, types_ids=None, timeout=None, **parametres):
+        """Récupère les relations entrantes d'un terme. Retourne {nodes, relations}."""
+        return self._get(f"/relations/to/{encoder_segment(nom)}",
+                         {"types_ids": types_ids, **parametres}, timeout)
 
     # ------------------------------------------------------------------ utilitaires
 
-    def exists(self, name):
+    def existe(self, nom):
+        """Dit si le terme existe dans JDM sous cette forme exacte. Retourne un booléen."""
         try:
-            self.node_by_name(name)
+            self.noeud_par_nom(nom)
             return True
-        except JDMNotFound:
+        except JDMIntrouvable:
             return False
 
-    def relation_type_maps(self):
-        """(nom -> id, id -> nom) pour les types de relations, ex. 'r_isa' <-> 6."""
-        types = self.relation_types()
+    def tables_types_relations(self):
+        """Construit les tables des types de relations. Retourne (nom -> id, id -> nom)."""
+        types = self.types_de_relations()
         return {t["name"]: t["id"] for t in types}, {t["id"]: t["name"] for t in types}
 
 
-def resolve_refinement_name(name, id_to_name, client=None):
-    """Nom lisible : entités HTML décodées (« &#339;uvre » -> « œuvre ») et ids de
-    raffinement traduits (« chatte>150 » -> « chatte>chat »). Un id absent de
-    `id_to_name` est demandé à node_by_id si `client` est fourni, sinon laissé tel quel."""
-    name = html.unescape(name)
-    if ">" not in name:
-        return name
-    head, *parts = name.split(">")
-    out = [head]
-    for part in parts:
-        if part.isdigit():
-            node_id = int(part)
-            if node_id not in id_to_name and client is not None:
+def nom_raffinement_lisible(nom, id_vers_nom, client=None):
+    """Rend lisible un nom de raffinement. Retourne le nom avec ses entités HTML décodées
+    (« &#339;uvre » -> « œuvre ») et ses identifiants traduits (« chatte>150 » -> « chatte>chat »).
+
+    Un identifiant absent de `id_vers_nom` est demandé à noeud_par_id si `client` est fourni,
+    sinon laissé tel quel."""
+    nom = html.unescape(nom)
+    if ">" not in nom:
+        return nom
+    tete, *parties = nom.split(">")
+    lisible = [tete]
+    for partie in parties:
+        if partie.isdigit():
+            identifiant = int(partie)
+            if identifiant not in id_vers_nom and client is not None:
                 try:
-                    id_to_name[node_id] = client.node_by_id(node_id)["name"]
-                except (JDMNotFound, JDMError):
+                    id_vers_nom[identifiant] = client.noeud_par_id(identifiant)["name"]
+                except (JDMIntrouvable, JDMErreur):
                     pass
-            part = html.unescape(id_to_name.get(node_id, part))
-        out.append(part)
-    return ">".join(out)
+            partie = html.unescape(id_vers_nom.get(identifiant, partie))
+        lisible.append(partie)
+    return ">".join(lisible)
