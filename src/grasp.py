@@ -433,7 +433,7 @@ def serialiser_cote(signature):
 
 
 def ecrire_arbres(noeuds, racines, representation=None):
-    """Écrit data/modeles/arbres.json, un nœud par ligne. Retourne le chemin.
+    """Écrit les arbres dans config.FICHIER_ARBRES, un nœud par ligne. Retourne le chemin.
 
     Un nœud par ligne plutôt qu'un symbole par ligne : le fichier reste lisible et
     comparable d'une version à l'autre sans tripler de volume."""
@@ -458,7 +458,7 @@ def ecrire_arbres(noeuds, racines, representation=None):
 
 
 def charger_arbres():
-    """Lit data/modeles/arbres.json. Retourne (id -> nœud, relation -> id racine)."""
+    """Lit config.FICHIER_ARBRES. Retourne (id -> nœud, relation -> id racine)."""
     charge = json.loads(config.FICHIER_ARBRES.read_text(encoding="utf-8"))
     noeuds = {}
     for brut in charge["noeuds"]:

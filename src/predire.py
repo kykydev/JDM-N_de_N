@@ -2,18 +2,26 @@
 """Étape 7 : prédire la relation d'un « A de B » quelconque, et expliquer la décision.
 
 Rien de neuf ici : l'outil assemble ce que les étapes précédentes ont produit. Le
-découpage A/B vient de corpus_check.py, l'accès au réseau de jdm_client.py, la
-construction de signature de signatures.py, la descente de classify.py, et les quinze
-arbres de la configuration retenue (config.py : somme · arbre · descente).
+découpage A/B vient de corpus_check.py, l'accès au réseau de jdm_client.py, les
+signatures et les arbres de variantes_signatures.py, la descente de classify.py.
+
+Configuration : somme · arbre · descente (config.py), avec les signatures retenues en
+validation croisée, config.SIGNATURES_RETENUES : 20 hyperonymes, poids issus de la
+collecte, terme lui-même absent. Ce sont exactement celles de l'évaluation finale
+(reports/rapport_final_signatures.md). Signatures et arbres sont reconstruits en
+mémoire à chaque lancement, en une ou deux secondes, depuis la collecte et les 750
+exemples d'entraînement : rien n'est stocké, donc rien ne peut être périmé.
 
 Pour chaque syntagme, l'outil montre le chemin parcouru dans l'arbre gagnant, avec le
 score à chaque niveau, le nœud où la descente s'arrête — feuille ou nœud interne — et
 les exemples d'entraînement que ce nœud couvre.
 
 Trois modes : interactif, un syntagme en argument, ou un fichier de syntagmes vers un
-CSV. Rien n'est réappris, rien n'est réévalué. Le corpus, la collecte, les signatures
-et les arbres ne sont jamais modifiés : les signatures calculées à la volée vont dans un
-cache à part, data/cache/signatures_ad_hoc.json.
+CSV. Rien n'est réévalué. Le corpus, la collecte et data/signatures/ ne sont jamais
+modifiés : les enregistrements JDM des termes interrogés à la volée vont dans un cache à
+part, data/cache/enregistrements_ad_hoc.json. On y garde l'enregistrement brut plutôt
+que la signature, qui se recalcule au chargement : le cache reste valable si les
+réglages de signature changent.
 
 Usage : python3 src/predire.py [syntagme] [--fichier F] [--top N] [--detail] [--sans-api]
 """
@@ -29,11 +37,11 @@ import config
 import corpus_check
 import grasp
 import jdm_collect
-import signatures as sig
+import variantes_signatures as vs
 from jdm_client import ClientJDM, JDMErreur, JDMIntrouvable
 
 
-CHEMIN_CACHE_AD_HOC = config.DOSSIER_CACHE / "signatures_ad_hoc.json"
+CHEMIN_CACHE_AD_HOC = config.DOSSIER_CACHE / "enregistrements_ad_hoc.json"
 
 # Nombre de symboles d'explication affichés de chaque côté.
 SYMBOLES_EXPLIQUES = 5
@@ -50,31 +58,23 @@ ECART_SERRE = 0.05
 # Chargement de ce que les étapes précédentes ont produit
 # ---------------------------------------------------------------------------
 
-def charger_signatures_connues():
-    """Lit les signatures des 1867 termes du corpus. Retourne terme -> ensemble."""
-    brut = json.loads(config.FICHIER_SIGNATURES.read_text(encoding="utf-8"))
-    return {terme: set(symboles) for terme, symboles in brut.items()}
-
-
-def charger_cache_ad_hoc():
-    """Lit les signatures calculées lors des exécutions précédentes.
-    Retourne terme -> ensemble."""
+def charger_enregistrements_ad_hoc():
+    """Lit les enregistrements JDM des termes interrogés lors des exécutions précédentes.
+    Retourne terme -> enregistrement."""
     if not CHEMIN_CACHE_AD_HOC.exists():
         return {}
     try:
-        brut = json.loads(CHEMIN_CACHE_AD_HOC.read_text(encoding="utf-8"))
+        return json.loads(CHEMIN_CACHE_AD_HOC.read_text(encoding="utf-8"))
     except ValueError as erreur:
         print(f"  cache ad hoc illisible, ignoré : {erreur}", file=sys.stderr)
         return {}
-    return {terme: set(symboles) for terme, symboles in brut.items()}
 
 
-def ecrire_cache_ad_hoc(cache):
-    """Enregistre les signatures calculées à la volée. Ne retourne rien."""
+def ecrire_enregistrements_ad_hoc(enregistrements):
+    """Enregistre les enregistrements JDM des termes interrogés. Ne retourne rien."""
     CHEMIN_CACHE_AD_HOC.parent.mkdir(parents=True, exist_ok=True)
-    serialisable = {terme: sorted(symboles) for terme, symboles in sorted(cache.items())}
     with open(CHEMIN_CACHE_AD_HOC, "w", encoding="utf-8", newline="") as f:
-        json.dump(serialisable, f, ensure_ascii=False, indent=1, sort_keys=True)
+        json.dump(dict(sorted(enregistrements.items())), f, ensure_ascii=False, indent=1)
         f.write("\n")
 
 
@@ -177,28 +177,35 @@ def decouper(syntagme, contexte, interactif):
 
 def signature_par_api(terme, contexte):
     """Interroge JDM et construit la signature d'un terme inconnu.
-    Retourne (ensemble, provenance)."""
+    Retourne (dict symbole -> poids, provenance)."""
     client = ouvrir_client(contexte)
     if client is None:
-        return {terme}, "inconnu, hors ligne"
+        return signature_hors_jdm(terme, contexte), "inconnu, hors ligne"
     try:
         enregistrement = jdm_collect.collecter_terme(
             client, terme, contexte["ids_relations"], contexte["id_vers_relation"],
             contexte["noms_types_noeuds"])
     except (JDMErreur, OSError) as erreur:
         print(f"  appel JDM échoué pour « {terme} » ({erreur}).")
-        return {terme}, "appel échoué"
+        return signature_hors_jdm(terme, contexte), "appel échoué"
     if not enregistrement.get("existe"):
-        return {terme}, "ABSENT de JDM"
-    signature = sig.construire_signature(terme, enregistrement, contexte["seuils"])
+        return signature_hors_jdm(terme, contexte), "ABSENT de JDM"
+    signature = vs.signature_d_un_terme(terme, enregistrement, contexte["cle"])
     contexte["cache"][terme] = signature
+    contexte["enregistrements"][terme] = enregistrement
     contexte["cache_modifie"] = True
     return signature, "via API, mis en cache"
 
 
+def signature_hors_jdm(terme, contexte):
+    """Signature d'un terme dont JDM ne dit rien : réduite au symbole du terme selon les
+    réglages retenus, donc vide quand le terme n'y figure pas. Retourne un dict."""
+    return vs.signature_d_un_terme(terme, None, contexte["cle"])
+
+
 def signature_du_terme(terme, contexte):
     """Signature d'un terme, du corpus, du cache, ou de l'API.
-    Retourne (ensemble, provenance)."""
+    Retourne (dict symbole -> poids, provenance)."""
     if terme in contexte["signatures"]:
         return contexte["signatures"][terme], "du corpus"
     if terme in contexte["cache"]:
@@ -268,6 +275,12 @@ def aligner(etiquette, elements, largeur=78):
     retrait = " " * len(etiquette)
     enveloppe = textwrap.wrap(", ".join(elements), width=largeur - len(etiquette))
     return [etiquette + enveloppe[0]] + [retrait + suite for suite in enveloppe[1:]]
+
+
+def poids_en_texte(signature):
+    """Écrit une signature avec ses poids, les plus lourds d'abord. Retourne une liste."""
+    return [f"{symbole} {fr(poids, 2)}"
+            for symbole, poids in sorted(signature.items(), key=lambda c: (-c[1], c[0]))]
 
 
 def mettre_en_forme(decisifs):
@@ -374,12 +387,10 @@ def afficher_prediction(resultat, options):
 
     if options.detail:
         print()
-        for ligne in aligner(f"Signature de « {resultat['A']} » : ",
-                             sorted(resultat["sA"])):
-            print(ligne)
-        for ligne in aligner(f"Signature de « {resultat['B']} » : ",
-                             sorted(resultat["sB"])):
-            print(ligne)
+        for terme, cle in (("A", "sA"), ("B", "sB")):
+            for ligne in aligner(f"Signature de « {resultat[terme]} » : ",
+                                 poids_en_texte(resultat[cle])):
+                print(ligne)
     print()
 
 
@@ -493,19 +504,24 @@ def analyser_arguments():
 
 
 def preparer_contexte(options):
-    """Charge les arbres, les signatures et le cache. Retourne un dict."""
-    noeuds, racines = grasp.charger_arbres()
-    signatures = charger_signatures_connues()
+    """Reconstruit signatures et arbres, charge le cache. Retourne un dict."""
+    vs.preparer_donnees()
+    cle = vs.cle_de(config.SIGNATURES_RETENUES)
+    signatures = vs.signatures_du_corpus(cle)
+    noeuds, racines = vs.arbres_retenus(signatures)
+    enregistrements = charger_enregistrements_ad_hoc()
+    cache = {terme: vs.signature_d_un_terme(terme, enregistrement, cle)
+             for terme, enregistrement in enregistrements.items()}
     contexte = {
-        "noeuds": noeuds, "racines": racines, "signatures": signatures,
+        "noeuds": noeuds, "racines": racines, "signatures": signatures, "cle": cle,
         "tailles": classify.tailles_des_types(noeuds),
-        "cache": charger_cache_ad_hoc(), "cache_modifie": False,
-        "client": None, "sans_api": options.sans_api, "seuils": {},
+        "cache": cache, "enregistrements": enregistrements, "cache_modifie": False,
+        "client": None, "sans_api": options.sans_api,
         "ids_relations": None, "id_vers_relation": None, "noms_types_noeuds": None,
     }
-    print(f"Arbres ({config.REPRESENTATION} · {config.STRUCTURE} · {config.CLASSIFICATION}) : "
-          f"{len(racines)} types, {len(noeuds)} nœuds, classement par "
-          f"descente. {len(signatures)} signatures connues, {len(contexte['cache'])} en cache."
+    print(f"{config.REPRESENTATION} · {config.STRUCTURE} · {config.CLASSIFICATION}, "
+          f"signatures : {vs.libelle(cle)}. {len(racines)} arbres, {len(noeuds)} nœuds, "
+          f"{len(signatures)} signatures connues, {len(cache)} en cache."
           + (" Mode hors ligne." if options.sans_api else ""))
     return contexte
 
@@ -524,8 +540,8 @@ def main():
         mode_interactif(contexte, options)
 
     if contexte["cache_modifie"]:
-        ecrire_cache_ad_hoc(contexte["cache"])
-        print(f"Cache ad hoc mis à jour : {len(contexte['cache'])} signatures.")
+        ecrire_enregistrements_ad_hoc(contexte["enregistrements"])
+        print(f"Cache ad hoc mis à jour : {len(contexte['enregistrements'])} termes.")
 
 
 if __name__ == "__main__":

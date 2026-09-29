@@ -12,7 +12,7 @@ Deux temps, séparés pour que le test ne soit lu qu'UNE fois :
      qui permet de retoucher l'analyse sans rouvrir le test.
 
 Aucune configuration de contrôle n'est évaluée ici. Les chiffres du plus proche voisin
-et de la méthode à seuil sont des résultats DÉJÀ obtenus, relus tels quels ; ceux de
+et de la méthode à seuil sont des résultats DÉJÀ obtenus, figés dans classify.py ; ceux de
 l'article sont ceux du Tableau 3.
 
 Aucun appel réseau.
@@ -33,11 +33,6 @@ import config
 import grasp
 import signatures as sig
 
-
-# Prédictions de la version en union : contiennent aussi le plus proche voisin, classé
-# à l'époque avec les mêmes feuilles (une feuille est la même dans les deux
-# représentations). Relues, jamais recalculées.
-FICHIER_ANCIEN_TEST = config.DOSSIER_RESULTATS / "test_predictions.json"
 
 # F1 publiés ou déjà mesurés, pour la mise en regard.
 F1_ARTICLE = classify.ARTICLE_F1
@@ -172,21 +167,6 @@ def lire_predictions():
     """Relit les prédictions enregistrées. Retourne (prédictions, durée)."""
     charge = json.loads(config.FICHIER_PREDICTIONS_FINALES.read_text(encoding="utf-8"))
     return charge["predictions"], charge["duree_classement"]
-
-
-def voisin_par_type(types):
-    """F1 par type du plus proche voisin, relu de l'ancien fichier. Retourne un dict ou None."""
-    if not FICHIER_ANCIEN_TEST.exists():
-        return None
-    charge = json.loads(FICHIER_ANCIEN_TEST.read_text(encoding="utf-8"))
-    predictions = []
-    for p in charge["predictions"]:
-        if "exhaustif_feuilles" not in p:
-            return None
-        predit = p["exhaustif_feuilles"]["predit"]
-        predictions.append({"attendu": p["attendu"], "predit": predit,
-                            "correct": predit == p["attendu"]})
-    return classify.evaluer(predictions, types)
 
 
 # ---------------------------------------------------------------------------
@@ -363,7 +343,7 @@ def section_dispositif(n_test, duree):
             "tous trois **relus** de résultats déjà obtenus sur ce même test.", ""]
 
 
-def section_resultats(evaluation, voisin):
+def section_resultats(evaluation):
     """2 : macro, puis détail par type. Retourne des lignes."""
     f1 = evaluation["f1"]
     lignes = ["## 2. Résultats", "",
@@ -382,7 +362,7 @@ def section_resultats(evaluation, voisin):
         corps.append([f"`{rt}`", d["predits"], fr(100 * d["precision"], 1),
                       fr(100 * d["rappel"], 1), f"**{fr(d['f1'], 2)}**",
                       fr(article[2], 2), fr(classify.ANCIEN_PAR_TYPE[rt], 2),
-                      fr(voisin["par_type"][rt]["f1"], 2) if voisin else "—",
+                      fr(classify.VOISIN_PAR_TYPE[rt], 2),
                       ecart_signe(d["f1"] - article[2], 2)])
     corps.append(["**macro**", "", fr(100 * evaluation["precision"], 1),
                   fr(100 * evaluation["rappel"], 1), f"**{fr(f1, 3)}**",
@@ -616,7 +596,7 @@ def construire_rapport(predictions, duree):
               f"Configuration figée en validation croisée, évaluée une seule fois sur les "
               f"{len(predictions)} exemples de test.", ""]
     lignes += section_dispositif(len(predictions), duree)
-    lignes += section_resultats(evaluation, voisin_par_type(types))
+    lignes += section_resultats(evaluation)
     lignes += section_confusion(matrice, types)
     lignes += section_descente(stats, len(predictions))
     lignes += section_types_profonds(descentes_profondes(predictions), evaluation)

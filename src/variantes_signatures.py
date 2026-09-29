@@ -253,17 +253,20 @@ def signatures_ponderees(termes, termes_train, cle):
     """Signatures de tous les termes d'un pli pour une configuration.
     Retourne terme -> (symbole -> poids).
 
-    Les statistiques (df, centiles, types fréquents) ne portent que sur `termes_train`.
-    Les poids nuls sont retirés : un symbole présent partout ne discrimine rien."""
+    Les statistiques (df, centiles, types fréquents) ne portent que sur `termes_train`,
+    qui n'a pas besoin d'être contenu dans `termes`. Les poids nuls sont retirés : un
+    symbole présent partout ne discrimine rien."""
     _, pond, _, trt, _, df_min = cle
     statistiques = statistiques_trt(termes_train) if trt in ("sans_frequents", "centile") else None
+    a_besoin_de_df = pond in FAMILLE_IDF or df_min > 1
+    cibles = termes | termes_train if a_besoin_de_df else termes
     brutes = {terme: signature_jdm(terme, DONNEES["bases"][terme], cle, statistiques)
-              for terme in termes}
-    df = frequences_documentaires(brutes, termes_train)
+              for terme in cibles}
+    df = frequences_documentaires(brutes, termes_train) if a_besoin_de_df else Counter()
     signatures = {}
-    for terme, poids_collecte in brutes.items():
+    for terme in termes:
         signature = {}
-        for symbole, poids in poids_collecte.items():
+        for symbole, poids in brutes[terme].items():
             if df_min > 1 and df.get(symbole, 0) < df_min:
                 continue
             valeur = poids_final(symbole, poids, pond, df, len(termes_train))
@@ -271,6 +274,46 @@ def signatures_ponderees(termes, termes_train, cle):
                 signature[symbole] = valeur
         signatures[terme] = signature
     return signatures
+
+
+# ---------------------------------------------------------------------------
+# Signatures retenues, hors validation croisée (utilisées par predire.py)
+# ---------------------------------------------------------------------------
+
+def completer_bases(termes, collecte):
+    """Ajoute à DONNEES["bases"] les termes qui n'y sont pas. Ne retourne rien."""
+    for terme in termes - set(DONNEES["bases"]):
+        DONNEES["bases"][terme] = base_du_terme(collecte.get(terme))
+
+
+def signatures_du_corpus(cle):
+    """Signatures de tous les termes du corpus pour une configuration, en mémoire.
+    Retourne terme -> (symbole -> poids).
+
+    Les statistiques éventuelles (idf, centiles) ne portent que sur les termes
+    d'entraînement. Suppose preparer_donnees() déjà appelée."""
+    corpus, _ = sig.charger_corpus()
+    termes = sig.termes_du_corpus(corpus) | DONNEES["termes"]
+    completer_bases(termes, sig.charger_collecte())
+    return signatures_ponderees(termes, DONNEES["termes"], cle)
+
+
+def signature_d_un_terme(terme, enregistrement, cle):
+    """Signature d'un terme quelconque, d'après son enregistrement de collecte.
+    Retourne symbole -> poids.
+
+    Sert aux termes absents du corpus, interrogés à la volée. Un terme absent de JDM
+    reçoit la signature réduite à son symbole, donc vide si le terme n'y figure pas."""
+    DONNEES["bases"][terme] = base_du_terme(enregistrement)
+    return signatures_ponderees({terme}, DONNEES["termes"], cle)[terme]
+
+
+def arbres_retenus(signatures):
+    """Apprend les quinze arbres sur les 750 exemples d'entraînement avec ces signatures.
+    Retourne (nœuds, racines)."""
+    noeuds, racines, _ = grasp.construire_foret(
+        feuilles_ponderees(DONNEES["lignes_train"], signatures), "somme")
+    return noeuds, racines
 
 
 # ---------------------------------------------------------------------------

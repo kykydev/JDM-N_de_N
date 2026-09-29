@@ -178,11 +178,11 @@ DOSSIER_MODELES = DOSSIER_DONNEES / "modeles"
 
 # Les quinze arbres du clustering hiérarchique, tous nœuds compris (src/grasp.py). Le
 # nom porte la représentation : changer REPRESENTATION n'écrase pas les arbres d'une
-# autre (arbres.json, sans suffixe, est l'ancienne version en union).
+# autre. Les arbres en union ont été supprimés (ils sont dans le commit 8bd078a).
 FICHIER_ARBRES = DOSSIER_MODELES / f"arbres_{REPRESENTATION}.json"
 
-# Rapport commun à grasp.py, classify.py et evaluate.py, une partie chacun. Même
-# principe : rapport_arbres.md, sans suffixe, documente la version en union.
+# Rapport de grasp.py. Même principe : rapport_arbres.md, sans suffixe, documente la
+# version en union et n'est plus régénérable.
 FICHIER_RAPPORT_ARBRES = DOSSIER_RAPPORTS / f"rapport_arbres_{REPRESENTATION}.md"
 
 # ---------------------------------------------------------------------------
@@ -192,7 +192,7 @@ FICHIER_RAPPORT_ARBRES = DOSSIER_RAPPORTS / f"rapport_arbres_{REPRESENTATION}.md
 DOSSIER_RESULTATS = DOSSIER_DONNEES / "resultats"
 
 # Évaluation finale de la configuration retenue (src/evaluation_finale.py). Fichiers à
-# part : test_predictions.json et matrice_confusion.csv sont ceux de la version en union.
+# part, pour la version en union (dont les résultats sont dans le commit 8bd078a).
 FICHIER_PREDICTIONS_FINALES = DOSSIER_RESULTATS / "predictions_finales.json"
 FICHIER_MATRICE_FINALE = DOSSIER_RESULTATS / "matrice_confusion_finale.csv"
 FICHIER_RAPPORT_FINAL = DOSSIER_RAPPORTS / "rapport_final.md"
@@ -272,8 +272,8 @@ FICHIER_RAPPORT_VARIANTES = DOSSIER_RAPPORTS / "rapport_signatures_variantes.md"
 # ---------------------------------------------------------------------------
 #
 # Choisies dans reports/rapport_signatures_variantes.md. `predire.py` et
-# data/signatures/ utilisent toujours les réglages actuels (REFERENCE_VARIANTES) : ces
-# signatures-là n'existent que dans l'évaluation finale, en mémoire.
+# `evaluation_signatures.py` les construisent en mémoire ; data/signatures/ garde les
+# signatures initiales (REFERENCE_VARIANTES), que lit encore `evaluation_finale.py`.
 SIGNATURES_RETENUES = {"h": 20, "pond": "jdm", "terme": "T2", "trt": "tous",
                        "sst": "toutes", "df_min": 1}
 
