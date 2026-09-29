@@ -3,12 +3,16 @@
 
 Rien de neuf ici : l'outil assemble ce que les étapes précédentes ont produit. Le
 découpage A/B vient de corpus_check.py, l'accès au réseau de jdm_client.py, la
-construction de signature de signatures.py, le calcul de score de classify.py, et les
-règles de data/modeles/modele_final.json.
+construction de signature de signatures.py, la descente de classify.py, et les quinze
+arbres de la configuration retenue (config.py : somme · arbre · descente).
+
+Pour chaque syntagme, l'outil montre le chemin parcouru dans l'arbre gagnant, avec le
+score à chaque niveau, le nœud où la descente s'arrête — feuille ou nœud interne — et
+les exemples d'entraînement que ce nœud couvre.
 
 Trois modes : interactif, un syntagme en argument, ou un fichier de syntagmes vers un
 CSV. Rien n'est réappris, rien n'est réévalué. Le corpus, la collecte, les signatures
-et le modèle ne sont jamais modifiés : les signatures calculées à la volée vont dans un
+et les arbres ne sont jamais modifiés : les signatures calculées à la volée vont dans un
 cache à part, data/cache/signatures_ad_hoc.json.
 
 Usage : python3 src/predire.py [syntagme] [--fichier F] [--top N] [--detail] [--sans-api]
@@ -23,6 +27,7 @@ import textwrap
 import classify
 import config
 import corpus_check
+import grasp
 import jdm_collect
 import signatures as sig
 from jdm_client import ClientJDM, JDMErreur, JDMIntrouvable
@@ -33,6 +38,9 @@ CHEMIN_CACHE_AD_HOC = config.DOSSIER_CACHE / "signatures_ad_hoc.json"
 # Nombre de symboles d'explication affichés de chaque côté.
 SYMBOLES_EXPLIQUES = 5
 
+# Nombre d'exemples d'entraînement affichés pour le nœud d'arrêt.
+EXEMPLES_AFFICHES = 8
+
 # En deçà de cet écart relatif au meilleur score, la décision est jugée serrée. C'est le
 # critère d'évaluation indulgente de l'article (§4.3) et le cas de classe multiple (§4.5).
 ECART_SERRE = 0.05
@@ -42,33 +50,10 @@ ECART_SERRE = 0.05
 # Chargement de ce que les étapes précédentes ont produit
 # ---------------------------------------------------------------------------
 
-def charger_modele():
-    """Lit le modèle final. Retourne (liste de règles, en-tête du fichier)."""
-    charge = json.loads(config.FICHIER_MODELE_FINAL.read_text(encoding="utf-8"))
-    regles = []
-    for identifiant, regle in enumerate(charge["regles"]):
-        regles.append({"id": identifiant, "rt": regle["rt"], "poids": regle["poids"],
-                       "sL": set(regle["sL"]), "sR": set(regle["sR"]),
-                       "exemples": regle["exemples"]})
-    return regles, charge
-
-
 def charger_signatures_connues():
     """Lit les signatures des 1867 termes du corpus. Retourne terme -> ensemble."""
     brut = json.loads(config.FICHIER_SIGNATURES.read_text(encoding="utf-8"))
     return {terme: set(symboles) for terme, symboles in brut.items()}
-
-
-def frequences_symboles(signatures):
-    """Compte chez combien de termes chaque symbole apparaît. Retourne symbole -> entier.
-
-    Sert à classer les symboles d'explication : un symbole rare explique mieux une
-    décision qu'un symbole que tout le monde porte."""
-    frequences = {}
-    for symboles in signatures.values():
-        for symbole in symboles:
-            frequences[symbole] = frequences.get(symbole, 0) + 1
-    return frequences
 
 
 def charger_cache_ad_hoc():
@@ -222,24 +207,17 @@ def signature_du_terme(terme, contexte):
 
 
 # ---------------------------------------------------------------------------
-# Classement (formule 3, mesure figée à l'étape 5)
+# Classement (descente dans les quinze arbres, formule 3)
 # ---------------------------------------------------------------------------
 
-def classer(signature_a, signature_b, regles):
-    """Score chaque règle et résume par type. Retourne une liste triée de dicts."""
-    mesure = classify.MESURES[config.MESURE_FIGEE]
-    meilleure_par_type = {}
-    for regle in regles:
-        score = 0.5 * (mesure(signature_a, regle["sL"])
-                       + mesure(signature_b, regle["sR"]))
-        ancienne = meilleure_par_type.get(regle["rt"])
-        if ancienne is None or score > ancienne["score"] or (
-                score == ancienne["score"] and regle["id"] < ancienne["regle"]["id"]):
-            meilleure_par_type[regle["rt"]] = {"rt": regle["rt"], "score": score,
-                                               "regle": regle}
-    classement = list(meilleure_par_type.values())
-    classement.sort(key=lambda e: (-e["score"], e["rt"]))
-    return classement
+def classer(signature_a, signature_b, noeuds, racines):
+    """Descend les quinze arbres. Retourne (classement des types, descente gagnante).
+
+    Le classement donne, pour chaque type, le score du nœud où sa descente s'arrête."""
+    resultat = classify.classer_par_descente(signature_a, signature_b, noeuds, racines)
+    classement = [{"rt": r["rt"], "score": r["score"], "noeud": noeuds[r["arret"]]}
+                  for r in resultat["reponses"]]
+    return classement, resultat["gagnante"]
 
 
 def ecart_relatif(classement):
@@ -253,14 +231,25 @@ def ecart_relatif(classement):
 # Explication
 # ---------------------------------------------------------------------------
 
-def symboles_decisifs(signature_terme, signature_regle, frequences, combien):
-    """Symboles communs au terme et à la règle, les plus rares d'abord.
-    Retourne une liste.
+def profil_du_noeud(cote, poids):
+    """Part des exemples du nœud qui portent chaque symbole. Retourne symbole -> flottant.
 
-    Un symbole que presque personne ne porte explique mieux une décision qu'un symbole
-    que tout le corpus partage."""
-    communs = signature_terme & signature_regle
-    return sorted(communs, key=lambda s: (frequences.get(s, 0), s))[:combien]
+    Un côté en somme est un compte : divisé par le poids, c'est le profil moyen. Un côté
+    en union n'a pas de comptes, tous ses symboles valent 1."""
+    if isinstance(cote, dict):
+        return {symbole: compte / poids for symbole, compte in cote.items()}
+    return {symbole: 1.0 for symbole in cote}
+
+
+def symboles_decisifs(signature_terme, cote_noeud, poids, combien):
+    """Symboles communs à l'exemple et au nœud, les plus pesants du profil d'abord.
+    Retourne une liste de couples (symbole, part).
+
+    Un symbole que presque tous les exemples du nœud portent explique mieux la décision
+    qu'un symbole porté par un seul."""
+    profil = profil_du_noeud(cote_noeud, poids)
+    communs = [(symbole, profil[symbole]) for symbole in signature_terme if symbole in profil]
+    return sorted(communs, key=lambda c: (-c[1], c[0]))[:combien]
 
 
 # ---------------------------------------------------------------------------
@@ -281,20 +270,53 @@ def aligner(etiquette, elements, largeur=78):
     return [etiquette + enveloppe[0]] + [retrait + suite for suite in enveloppe[1:]]
 
 
-def decrire_regle(regle):
-    """Phrase décrivant la règle gagnante et son origine. Retourne une liste de lignes."""
-    exemples = regle["exemples"]
-    etiquette = "Règle gagnante : "
-    lignes = [f"{etiquette}apprise sur « {exemples[0]} »"]
-    autres = len(exemples) - 1
-    if autres == 0:
-        lignes[0] += "  (règle orpheline, poids 1)"
-    elif autres == 1:
-        lignes.append(" " * len(etiquette)
-                      + f"et 1 autre exemple (poids {regle['poids']})")
+def mettre_en_forme(decisifs):
+    """Écrit les symboles décisifs avec leur part dans le profil. Retourne une liste."""
+    return [f"{symbole} {fr(part, 2)}" for symbole, part in decisifs]
+
+
+def decrire_chemin(gagnante, noeuds):
+    """Le chemin de la descente dans l'arbre gagnant. Retourne une liste de lignes.
+
+    À chaque niveau : le nœud, son poids, son score, et celui de ses deux enfants ; la
+    flèche marque l'enfant où la descente continue."""
+    lignes = [f"Chemin dans l'arbre {gagnante['rt']} :"]
+    chemin = gagnante["chemin"]
+    for rang, niveau in enumerate(chemin):
+        noeud = noeuds[niveau["id"]]
+        nature = "feuille" if grasp.est_feuille(noeud) else "nœud"
+        lignes.append(f"  prof. {niveau['profondeur']:2d}  {nature} {niveau['id']:<5d} "
+                      f"poids {niveau['poids']:2d}  score {fr(niveau['score'])}")
+        suivant = chemin[rang + 1]["id"] if rang + 1 < len(chemin) else None
+        enfants = []
+        for enfant in niveau["enfants"]:
+            marque = " <-" if enfant["id"] == suivant else ""
+            enfants.append(f"{enfant['id']} (poids {noeuds[enfant['id']]['poids']}) "
+                           f"{fr(enfant['score'])}{marque}")
+        if enfants:
+            lignes.append("            enfants : " + "   ".join(enfants))
+    return lignes
+
+
+def decrire_arret(noeud, taille_du_type):
+    """Le nœud d'arrêt, sa part du type et les exemples qu'il couvre.
+    Retourne une liste de lignes."""
+    part = f"{noeud['poids']} exemples sur {taille_du_type}, {fr(100 * noeud['poids'] / taille_du_type, 0)} % du type"
+    if grasp.est_feuille(noeud):
+        entete = (f"Arrêt sur une FEUILLE (profondeur {noeud['profondeur']}, {part}) : "
+                  "un seul exemple d'entraînement décide.")
+    elif noeud["profondeur"] == 0:
+        entete = (f"Arrêt sur la RACINE ({part}) : le profil moyen du type l'emporte, "
+                  "aucun enfant ne fait mieux.")
     else:
-        lignes.append(" " * len(etiquette)
-                      + f"et {autres} autres exemples (poids {regle['poids']})")
+        entete = (f"Arrêt sur un NŒUD INTERNE (profondeur {noeud['profondeur']}, {part}) : "
+                  "aucun des deux enfants ne fait mieux.")
+    syntagmes = noeud["syntagmes"]
+    lignes = [entete, "Exemples couverts :"]
+    for syntagme in syntagmes[:EXEMPLES_AFFICHES]:
+        lignes.append(f"    « {syntagme} »")
+    if len(syntagmes) > EXEMPLES_AFFICHES:
+        lignes.append(f"    … et {len(syntagmes) - EXEMPLES_AFFICHES} autres")
     return lignes
 
 
@@ -306,30 +328,37 @@ def afficher_prediction(resultat, options):
     print(f"B = {resultat['B']}   ({len(resultat['sB'])} symboles, "
           f"{resultat['provenance_b']})")
     print(f"    déterminant : {resultat['det']}+{resultat['definitude']} "
-          "— relevé mais NON utilisé : le trait de définitude dégradait le F1 "
-          "(Expérience 2)")
+          "— relevé mais NON utilisé : les arbres sont construits sans le trait "
+          "de définitude (voir l'Expérience 2)")
     if resultat["message"]:
         print(f"    {resultat['message']}")
     print()
 
     if not resultat["classement"][0]["score"]:
-        print("  AUCUNE PRÉDICTION : pas un seul symbole en commun avec une règle.")
+        print("  AUCUNE PRÉDICTION : pas un seul symbole en commun avec un nœud.")
         print("  Les deux termes sont trop mal décrits pour que la question ait un sens.")
         print()
         return
 
     for rang, entree in enumerate(resultat["classement"][:options.top], 1):
         marque = "   <- prédiction" if rang == 1 else ""
-        print(f"  {rang}. {entree['rt']:<22s} {fr(entree['score'])}{marque}")
+        noeud = entree["noeud"]
+        arret = "feuille" if grasp.est_feuille(noeud) else f"nœud de poids {noeud['poids']}"
+        print(f"  {rang}. {entree['rt']:<22s} {fr(entree['score'])}   "
+              f"(arrêt : {arret}, prof. {noeud['profondeur']}){marque}")
     print()
 
-    for ligne in decrire_regle(resultat["classement"][0]["regle"]):
+    for ligne in decrire_chemin(resultat["gagnante"], resultat["noeuds"]):
+        print(ligne)
+    print()
+    noeud = resultat["classement"][0]["noeud"]
+    for ligne in decrire_arret(noeud, resultat["tailles"][noeud["rt"]]):
         print(ligne)
     print()
 
-    for ligne in aligner("Symboles décisifs côté A : ", resultat["decisifs_a"]):
+    for ligne in aligner("Symboles décisifs côté A : ", mettre_en_forme(resultat["decisifs_a"])):
         print(ligne)
-    for ligne in aligner("Symboles décisifs côté B : ", resultat["decisifs_b"]):
+    for ligne in aligner("Symboles décisifs côté B : ", mettre_en_forme(resultat["decisifs_b"])):
         print(ligne)
     print()
 
@@ -367,8 +396,9 @@ def traiter(syntagme, contexte, interactif):
 
     signature_a, provenance_a = signature_du_terme(candidat["A"], contexte)
     signature_b, provenance_b = signature_du_terme(candidat["B"], contexte)
-    classement = classer(signature_a, signature_b, contexte["regles"])
-    gagnante = classement[0]["regle"]
+    classement, gagnante = classer(signature_a, signature_b, contexte["noeuds"],
+                                   contexte["racines"])
+    arret = classement[0]["noeud"]
 
     return {
         "syntagme": syntagme, "A": candidat["A"], "B": candidat["B"],
@@ -376,11 +406,12 @@ def traiter(syntagme, contexte, interactif):
         "sA": signature_a, "sB": signature_b,
         "provenance_a": provenance_a, "provenance_b": provenance_b,
         "message": message, "classement": classement,
-        "ecart": ecart_relatif(classement),
-        "decisifs_a": symboles_decisifs(signature_a, gagnante["sL"],
-                                        contexte["frequences"], SYMBOLES_EXPLIQUES),
-        "decisifs_b": symboles_decisifs(signature_b, gagnante["sR"],
-                                        contexte["frequences"], SYMBOLES_EXPLIQUES),
+        "gagnante": gagnante, "noeuds": contexte["noeuds"],
+        "tailles": contexte["tailles"], "ecart": ecart_relatif(classement),
+        "decisifs_a": symboles_decisifs(signature_a, arret["sL"], arret["poids"],
+                                        SYMBOLES_EXPLIQUES),
+        "decisifs_b": symboles_decisifs(signature_b, arret["sR"], arret["poids"],
+                                        SYMBOLES_EXPLIQUES),
     }
 
 
@@ -416,16 +447,17 @@ def mode_fichier(chemin, contexte, options):
     with open(sortie, "w", encoding="utf-8", newline="") as f:
         redacteur = csv.writer(f, lineterminator="\n")
         redacteur.writerow(["syntagme", "A", "B", "predit", "score", "second",
-                            "ecart_relatif", "serre", "poids_regle", "exemple_regle"])
+                            "ecart_relatif", "serre", "arret", "poids_noeud",
+                            "profondeur", "exemple_noeud"])
         for syntagme in lignes:
             resultat = traiter(syntagme, contexte, interactif=False)
             if resultat is None:
-                redacteur.writerow([syntagme, "", "", "", "", "", "", "", "", ""])
+                redacteur.writerow([syntagme] + [""] * 11)
                 continue
             premier = resultat["classement"][0]
             if not premier["score"]:
                 redacteur.writerow([syntagme, resultat["A"], resultat["B"],
-                                    "AUCUNE", "0", "", "", "", "", ""])
+                                    "AUCUNE", "0"] + [""] * 7)
                 print(f"  {syntagme} -> aucune prédiction (aucun symbole partagé)")
                 continue
             second = (resultat["classement"][1]["rt"]
@@ -434,7 +466,9 @@ def mode_fichier(chemin, contexte, options):
                 syntagme, resultat["A"], resultat["B"], premier["rt"],
                 f"{premier['score']:.4f}", second, f"{resultat['ecart']:.4f}",
                 "oui" if resultat["ecart"] < ECART_SERRE else "non",
-                premier["regle"]["poids"], premier["regle"]["exemples"][0]])
+                "feuille" if grasp.est_feuille(premier["noeud"]) else "interne",
+                premier["noeud"]["poids"], premier["noeud"]["profondeur"],
+                premier["noeud"]["syntagmes"][0]])
             print(f"  {syntagme} -> {premier['rt']} ({fr(premier['score'])})")
     print(f"\nÉcrit : {sortie}")
 
@@ -459,19 +493,19 @@ def analyser_arguments():
 
 
 def preparer_contexte(options):
-    """Charge le modèle, les signatures et le cache. Retourne un dict."""
-    regles, entete = charger_modele()
+    """Charge les arbres, les signatures et le cache. Retourne un dict."""
+    noeuds, racines = grasp.charger_arbres()
     signatures = charger_signatures_connues()
     contexte = {
-        "regles": regles, "signatures": signatures,
-        "frequences": frequences_symboles(signatures),
+        "noeuds": noeuds, "racines": racines, "signatures": signatures,
+        "tailles": classify.tailles_des_types(noeuds),
         "cache": charger_cache_ad_hoc(), "cache_modifie": False,
         "client": None, "sans_api": options.sans_api, "seuils": {},
         "ids_relations": None, "id_vers_relation": None, "noms_types_noeuds": None,
     }
-    print(f"Modèle : {len(regles)} règles, seuil {entete['seuil']}, "
-          f"{entete['strategie']}, mesure {config.MESURE_FIGEE}. "
-          f"{len(signatures)} signatures connues, {len(contexte['cache'])} en cache."
+    print(f"Arbres ({config.REPRESENTATION} · {config.STRUCTURE} · {config.CLASSIFICATION}) : "
+          f"{len(racines)} types, {len(noeuds)} nœuds, classement par "
+          f"descente. {len(signatures)} signatures connues, {len(contexte['cache'])} en cache."
           + (" Mode hors ligne." if options.sans_api else ""))
     return contexte
 

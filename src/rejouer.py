@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """Rejoue la chaîne complète après un changement de paramètre dans config.py.
 
-À quoi ça sert : changer une valeur de config.py (H_TOP, TRT_POLITIQUE, GRASP_SEUILS…)
+À quoi ça sert : changer une valeur de config.py (H_TOP, TRT_POLITIQUE…)
 invalide tout ce qui suit. Relancer les étapes une par une marche, mais dans le désordre
 on évalue des signatures neuves avec un modèle périmé, sans que rien ne le signale. Ce
 script impose l'ordre.
 
-    signatures.py  ->  grasp.py  ->  classify.py  ->  evaluate.py
+    signatures.py  ->  grasp.py  ->  grille.py  ->  evaluation_finale.py
 
 La collecte n'est PAS rejouée : elle stocke les traits bruts, sans coupure ni filtre, et
-ne dépend d'aucun des paramètres réglables. Aucun appel réseau, donc, et une trentaine
-de secondes en tout.
+ne dépend d'aucun des paramètres réglables. Aucun appel réseau, donc, et moins d'une
+minute en tout.
 
-AVERTISSEMENT DE MÉTHODE. `evaluate.py` ouvre le split test. Le rejouer après avoir
-changé un paramètre, puis choisir ce paramètre au vu du résultat, revient à régler le
-modèle sur le test : le chiffre cesse d'estimer la généralisation. Le score qui a le
-droit de guider un choix est celui du CALIBRAGE. Ce script affiche les deux côte à côte
-pour que la distinction reste sous les yeux.
+AVERTISSEMENT DE MÉTHODE. La méthode retenue n'a aucun seuil, mais config.py garde des
+paramètres de représentation (H_TOP, TRT_POLITIQUE…). `evaluation_finale.py` LIT le
+test : changer l'un de ces paramètres, puis le garder au vu du F1 de test, revient à
+régler le modèle sur le test, et le chiffre cesse d'estimer la généralisation. Le score
+qui a le droit de guider un choix est celui de la validation croisée (`grille.py`, qui
+ne lit que l'entraînement).
 
 Usage : python3 src/rejouer.py [--sans-test]
 """
@@ -33,9 +34,9 @@ import config
 # Les quatre étapes, dans l'ordre où elles doivent tourner.
 ETAPES = [
     ("signatures.py", "reconstruit les 1867 signatures depuis la collecte"),
-    ("grasp.py", "réapprend les règles, balaie stratégies et seuils"),
-    ("classify.py", "choisit le seuil sur le calibrage, réapprend le modèle final"),
-    ("evaluate.py", "ouvre le split test et mène les trois expériences"),
+    ("grasp.py", "reconstruit les quinze arbres de la configuration par défaut"),
+    ("grille.py", "compare toutes les configurations en validation croisée, sans test"),
+    ("evaluation_finale.py", "réapprend sur les 750 exemples et LIT le test"),
 ]
 
 
@@ -46,9 +47,9 @@ def parametres_courants():
         ("TRT_POLITIQUE", config.TRT_POLITIQUE),
         ("TRT_CENTILE", config.TRT_CENTILE),
         ("SST_EXCLURE_MORPHO", config.SST_EXCLURE_MORPHO),
-        ("MESURE_FIGEE", config.MESURE_FIGEE),
-        ("GRASP_SEUILS", config.GRASP_SEUILS),
-        ("GRASP_STRATEGIES", config.GRASP_STRATEGIES),
+        ("REPRESENTATION", config.REPRESENTATION),
+        ("STRUCTURE", config.STRUCTURE),
+        ("CLASSIFICATION", config.CLASSIFICATION),
     ]
 
 
@@ -61,17 +62,13 @@ def lancer(script):
     return resultat.returncode == 0, time.monotonic() - depart
 
 
-def lire_scores():
-    """Relit le F1 de calibrage et celui du test. Retourne un couple de flottants ou None."""
-    calibrage = test = None
-    if config.FICHIER_MODELE_FINAL.exists():
-        modele = json.loads(config.FICHIER_MODELE_FINAL.read_text(encoding="utf-8"))
-        calibrage = (modele.get("resume") or {}).get("f1_calibrage")
-    chemin_test = config.DOSSIER_RESULTATS / "test_predictions.json"
-    if chemin_test.exists():
-        charge = json.loads(chemin_test.read_text(encoding="utf-8"))
-        test = charge["macro_stricte"]["f1"]
-    return calibrage, test
+def lire_score():
+    """Relit le F1 de test de la descente. Retourne un flottant ou None."""
+    chemin_test = config.FICHIER_PREDICTIONS_FINALES
+    if not chemin_test.exists():
+        return None
+    charge = json.loads(chemin_test.read_text(encoding="utf-8"))
+    return charge["macro_stricte"]["f1"]
 
 
 def fr(valeur, decimales=3):
@@ -96,22 +93,18 @@ def afficher_bilan(avant, apres, durees):
         print(f"    {script:<18s} {duree:5.1f} s")
     print(f"    {'total':<18s} {total:5.1f} s")
     print()
-    for nom, indice in (("F1 calibrage", 0), ("F1 test", 1)):
-        ancien, nouveau = avant[indice], apres[indice]
-        if nouveau is None:
-            continue
-        if ancien is None or abs(ancien - nouveau) < 1e-9:
-            print(f"    {nom:<14s} {fr(nouveau)}")
+    if apres is not None:
+        if avant is None or abs(avant - apres) < 1e-9:
+            print(f"    {'F1 test':<14s} {fr(apres)}")
         else:
-            ecart = nouveau - ancien
+            ecart = apres - avant
             signe = "+" if ecart > 0 else "−"
-            print(f"    {nom:<14s} {fr(ancien)} -> {fr(nouveau)}"
+            print(f"    {'F1 test':<14s} {fr(avant)} -> {fr(apres)}"
                   f"   ({signe}{fr(abs(ecart))})")
     print()
-    print("    Le F1 de CALIBRAGE est celui qui a le droit de guider un choix de")
-    print("    paramètre. Le F1 de TEST ne vaut comme estimation de généralisation")
-    print("    que s'il n'a servi à rien décider. Choisir au vu du test, c'est régler")
-    print("    sur le test.")
+    print("    Le F1 de TEST ne vaut comme estimation de généralisation que s'il")
+    print("    n'a servi à rien décider. Garder un réglage de config.py au vu de ce")
+    print("    chiffre, c'est régler sur le test.")
     print("=" * 66)
 
 
@@ -119,11 +112,11 @@ def main():
     analyseur = argparse.ArgumentParser(
         description="Rejoue la chaîne complète après un changement de config.py.")
     analyseur.add_argument("--sans-test", action="store_true", dest="sans_test",
-                           help="s'arrête avant evaluate.py, pour ne pas rouvrir le test")
+                           help="s'arrête avant evaluation_finale.py, sans lire le test")
     options = analyseur.parse_args()
 
     afficher_parametres()
-    avant = lire_scores()
+    avant = lire_score()
 
     etapes = ETAPES[:-1] if options.sans_test else ETAPES
     durees = {}
@@ -137,9 +130,9 @@ def main():
                   "seraient calculées sur des données périmées.", file=sys.stderr)
             return 1
 
-    afficher_bilan(avant, lire_scores(), durees)
+    afficher_bilan(avant, lire_score(), durees)
     if options.sans_test:
-        print("    evaluate.py n'a pas été lancé : le F1 de test affiché est l'ancien.")
+        print("    evaluation_finale.py n'a pas été lancé : le F1 affiché est l'ancien.")
     return 0
 
 

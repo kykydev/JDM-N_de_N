@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 998 372" width="998" height="372" font-family="system-ui, sans-serif">
+<rect width="998" height="372" fill="#fcfcfb"/>
+<text x="44" y="22" font-size="15" font-weight="600" fill="#0b0b0b">F1 macro en validation croisée selon le seuil de coupe</text>
+<text x="44" y="40" font-size="11" fill="#52514e">Moyenne sur 5 plis, bande = ± 1 écart-type. « arbre » = aucune coupe. Ligne grise : plus proche voisin (0,534). Cercles : configurations de référence.</text>
+<line x1="808" x2="826" y1="18" y2="18" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="817" cy="18" r="4" fill="#2a78d6"/>
+<text x="832" y="22" font-size="11" fill="#0b0b0b">union</text>
+<line x1="898" x2="916" y1="18" y2="18" stroke="#eb6834" stroke-width="2"/>
+<circle cx="907" cy="18" r="4" fill="#eb6834"/>
+<text x="922" y="22" font-size="11" fill="#0b0b0b">somme</text>
+<text x="38" y="321.0" font-size="10" text-anchor="end" fill="#52514e">0,1</text>
+<text x="38" y="291.0" font-size="10" text-anchor="end" fill="#52514e">0,2</text>
+<text x="38" y="261.0" font-size="10" text-anchor="end" fill="#52514e">0,3</text>
+<text x="38" y="231.0" font-size="10" text-anchor="end" fill="#52514e">0,4</text>
+<text x="38" y="201.0" font-size="10" text-anchor="end" fill="#52514e">0,5</text>
+<text x="38" y="171.0" font-size="10" text-anchor="end" fill="#52514e">0,6</text>
+<text x="38" y="141.0" font-size="10" text-anchor="end" fill="#52514e">0,7</text>
+<text x="38" y="111.0" font-size="10" text-anchor="end" fill="#52514e">0,8</text>
+<text x="38" y="81.0" font-size="10" text-anchor="end" fill="#52514e">0,9</text>
+<text x="44" y="64" font-size="13" font-weight="600" fill="#0b0b0b">descente</text>
+<line x1="44" x2="334" y1="318.0" y2="318.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="288.0" y2="288.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="258.0" y2="258.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="228.0" y2="228.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="198.0" y2="198.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="168.0" y2="168.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="138.0" y2="138.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="108.0" y2="108.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="78.0" y2="78.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="44" x2="334" y1="187.8" y2="187.8" stroke="#52514e" stroke-width="1"/>
+<text x="62.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,30</text>
+<text x="113.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,40</text>
+<text x="165.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,50</text>
+<text x="216.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,60</text>
+<text x="268.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,70</text>
+<text x="320.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">arbre</text>
+<line x1="300.0" x2="300.0" y1="78" y2="318" stroke="#e4e3de" stroke-width="1"/>
+<polygon points="62.0,212.3 87.8,197.2 113.5,191.1 139.3,182.7 165.0,179.7 190.7,176.1 216.5,176.7 242.2,176.7 268.0,177.4 268.0,198.2 242.2,198.0 216.5,198.0 190.7,197.9 165.0,201.7 139.3,208.2 113.5,212.5 87.8,219.5 62.0,235.7" fill="#2a78d6" fill-opacity="0.12" stroke="none"/>
+<polyline points="62.0,224.0 87.8,208.4 113.5,201.8 139.3,195.4 165.0,190.7 190.7,187.0 216.5,187.3 242.2,187.3 268.0,187.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="320.0" cy="280.9" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · arbre · descente : F1 0,224 ± 0,039</title></circle>
+<circle cx="62.0" cy="224.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,30 · descente : F1 0,413 ± 0,039</title></circle>
+<circle cx="87.8" cy="208.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,35 · descente : F1 0,465 ± 0,037</title></circle>
+<circle cx="113.5" cy="201.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,40 · descente : F1 0,487 ± 0,036</title></circle>
+<circle cx="139.3" cy="195.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,45 · descente : F1 0,509 ± 0,042</title></circle>
+<circle cx="165.0" cy="190.7" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,50 · descente : F1 0,524 ± 0,037</title></circle>
+<circle cx="190.7" cy="187.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,55 · descente : F1 0,537 ± 0,036</title></circle>
+<circle cx="216.5" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,60 · descente : F1 0,536 ± 0,035</title></circle>
+<circle cx="242.2" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,65 · descente : F1 0,536 ± 0,036</title></circle>
+<circle cx="268.0" cy="187.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,70 · descente : F1 0,534 ± 0,035</title></circle>
+<circle cx="320.0" cy="280.9" r="8" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="320.0" y="268.9" font-size="10" text-anchor="middle" fill="#0b0b0b">cours (union)</text>
+<polygon points="62.0,102.1 87.8,101.4 113.5,100.2 139.3,101.0 165.0,106.5 190.7,111.5 216.5,141.0 242.2,207.9 268.0,177.4 268.0,198.2 242.2,224.3 216.5,176.8 190.7,130.3 165.0,125.5 139.3,127.6 113.5,128.0 87.8,124.7 62.0,125.7" fill="#eb6834" fill-opacity="0.12" stroke="none"/>
+<polyline points="62.0,113.9 87.8,113.1 113.5,114.1 139.3,114.3 165.0,116.0 190.7,120.9 216.5,158.9 242.2,216.1 268.0,187.8" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="320.0" cy="112.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · arbre · descente : F1 0,784 ± 0,042</title></circle>
+<circle cx="62.0" cy="113.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,30 · descente : F1 0,780 ± 0,039</title></circle>
+<circle cx="87.8" cy="113.1" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,35 · descente : F1 0,783 ± 0,039</title></circle>
+<circle cx="113.5" cy="114.1" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,40 · descente : F1 0,780 ± 0,046</title></circle>
+<circle cx="139.3" cy="114.3" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,45 · descente : F1 0,779 ± 0,044</title></circle>
+<circle cx="165.0" cy="116.0" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,50 · descente : F1 0,773 ± 0,032</title></circle>
+<circle cx="190.7" cy="120.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,55 · descente : F1 0,757 ± 0,031</title></circle>
+<circle cx="216.5" cy="158.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,60 · descente : F1 0,630 ± 0,060</title></circle>
+<circle cx="242.2" cy="216.1" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,65 · descente : F1 0,440 ± 0,027</title></circle>
+<circle cx="268.0" cy="187.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,70 · descente : F1 0,534 ± 0,035</title></circle>
+<circle cx="320.0" cy="112.9" r="8" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="320.0" y="100.9" font-size="10" text-anchor="middle" fill="#0b0b0b">cours (somme)</text>
+<text x="368" y="64" font-size="13" font-weight="600" fill="#0b0b0b">exhaustif tous nœuds</text>
+<line x1="368" x2="658" y1="318.0" y2="318.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="288.0" y2="288.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="258.0" y2="258.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="228.0" y2="228.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="198.0" y2="198.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="168.0" y2="168.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="138.0" y2="138.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="108.0" y2="108.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="78.0" y2="78.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="368" x2="658" y1="187.8" y2="187.8" stroke="#52514e" stroke-width="1"/>
+<text x="386.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,30</text>
+<text x="437.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,40</text>
+<text x="489.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,50</text>
+<text x="540.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,60</text>
+<text x="592.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,70</text>
+<text x="644.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">arbre</text>
+<line x1="624.0" x2="624.0" y1="78" y2="318" stroke="#e4e3de" stroke-width="1"/>
+<polygon points="386.0,175.0 411.8,175.0 437.5,176.0 463.3,176.0 489.0,176.7 514.7,176.7 540.5,176.7 566.2,176.7 592.0,177.4 592.0,198.2 566.2,198.0 540.5,198.0 514.7,198.0 489.0,198.0 463.3,197.9 437.5,197.9 411.8,197.9 386.0,197.9" fill="#2a78d6" fill-opacity="0.12" stroke="none"/>
+<polyline points="386.0,186.4 411.8,186.4 437.5,186.9 463.3,186.9 489.0,187.3 514.7,187.3 540.5,187.3 566.2,187.3 592.0,187.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="644.0" cy="186.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · arbre · exhaustif tous nœuds : F1 0,539 ± 0,038</title></circle>
+<circle cx="386.0" cy="186.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,30 · exhaustif tous nœuds : F1 0,539 ± 0,038</title></circle>
+<circle cx="411.8" cy="186.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,35 · exhaustif tous nœuds : F1 0,539 ± 0,038</title></circle>
+<circle cx="437.5" cy="186.9" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,40 · exhaustif tous nœuds : F1 0,537 ± 0,036</title></circle>
+<circle cx="463.3" cy="186.9" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,45 · exhaustif tous nœuds : F1 0,537 ± 0,036</title></circle>
+<circle cx="489.0" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,50 · exhaustif tous nœuds : F1 0,536 ± 0,036</title></circle>
+<circle cx="514.7" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,55 · exhaustif tous nœuds : F1 0,536 ± 0,036</title></circle>
+<circle cx="540.5" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,60 · exhaustif tous nœuds : F1 0,536 ± 0,036</title></circle>
+<circle cx="566.2" cy="187.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,65 · exhaustif tous nœuds : F1 0,536 ± 0,036</title></circle>
+<circle cx="592.0" cy="187.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,70 · exhaustif tous nœuds : F1 0,534 ± 0,035</title></circle>
+<circle cx="489.0" cy="187.3" r="8" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="489.0" y="175.3" font-size="10" text-anchor="middle" fill="#0b0b0b">article (No Trim)</text>
+<polygon points="386.0,125.8 411.8,124.5 437.5,125.1 463.3,126.1 489.0,129.2 514.7,134.1 540.5,156.2 566.2,208.7 592.0,177.4 592.0,198.2 566.2,224.1 540.5,185.0 514.7,153.5 489.0,151.4 463.3,151.8 437.5,150.6 411.8,150.4 386.0,150.8" fill="#eb6834" fill-opacity="0.12" stroke="none"/>
+<polyline points="386.0,138.3 411.8,137.4 437.5,137.8 463.3,138.9 489.0,140.3 514.7,143.8 540.5,170.6 566.2,216.4 592.0,187.8" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="644.0" cy="138.3" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · arbre · exhaustif tous nœuds : F1 0,699 ± 0,042</title></circle>
+<circle cx="386.0" cy="138.3" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,30 · exhaustif tous nœuds : F1 0,699 ± 0,042</title></circle>
+<circle cx="411.8" cy="137.4" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,35 · exhaustif tous nœuds : F1 0,702 ± 0,043</title></circle>
+<circle cx="437.5" cy="137.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,40 · exhaustif tous nœuds : F1 0,701 ± 0,042</title></circle>
+<circle cx="463.3" cy="138.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,45 · exhaustif tous nœuds : F1 0,697 ± 0,043</title></circle>
+<circle cx="489.0" cy="140.3" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,50 · exhaustif tous nœuds : F1 0,692 ± 0,037</title></circle>
+<circle cx="514.7" cy="143.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,55 · exhaustif tous nœuds : F1 0,681 ± 0,032</title></circle>
+<circle cx="540.5" cy="170.6" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,60 · exhaustif tous nœuds : F1 0,591 ± 0,048</title></circle>
+<circle cx="566.2" cy="216.4" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,65 · exhaustif tous nœuds : F1 0,439 ± 0,026</title></circle>
+<circle cx="592.0" cy="187.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,70 · exhaustif tous nœuds : F1 0,534 ± 0,035</title></circle>
+<text x="692" y="64" font-size="13" font-weight="600" fill="#0b0b0b">exhaustif racines</text>
+<line x1="692" x2="982" y1="318.0" y2="318.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="288.0" y2="288.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="258.0" y2="258.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="228.0" y2="228.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="198.0" y2="198.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="168.0" y2="168.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="138.0" y2="138.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="108.0" y2="108.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="78.0" y2="78.0" stroke="#e4e3de" stroke-width="1"/>
+<line x1="692" x2="982" y1="187.8" y2="187.8" stroke="#52514e" stroke-width="1"/>
+<text x="710.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,30</text>
+<text x="761.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,40</text>
+<text x="813.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,50</text>
+<text x="864.5" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,60</text>
+<text x="916.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">0,70</text>
+<text x="968.0" y="334" font-size="10" text-anchor="middle" fill="#52514e">arbre</text>
+<line x1="948.0" x2="948.0" y1="78" y2="318" stroke="#e4e3de" stroke-width="1"/>
+<polygon points="710.0,237.5 735.8,203.2 761.5,189.2 787.3,185.2 813.0,170.3 838.7,173.3 864.5,183.6 890.2,178.4 916.0,177.4 916.0,198.2 890.2,196.5 864.5,197.9 838.7,201.1 813.0,192.5 787.3,215.7 761.5,206.8 735.8,249.7 710.0,263.6" fill="#2a78d6" fill-opacity="0.12" stroke="none"/>
+<polyline points="710.0,250.6 735.8,226.4 761.5,198.0 787.3,200.5 813.0,181.4 838.7,187.2 864.5,190.7 890.2,187.4 916.0,187.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="968.0" cy="223.5" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · arbre · exhaustif racines : F1 0,415 ± 0,061</title></circle>
+<circle cx="710.0" cy="250.6" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,30 · exhaustif racines : F1 0,325 ± 0,044</title></circle>
+<circle cx="735.8" cy="226.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,35 · exhaustif racines : F1 0,405 ± 0,077</title></circle>
+<circle cx="761.5" cy="198.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,40 · exhaustif racines : F1 0,500 ± 0,029</title></circle>
+<circle cx="787.3" cy="200.5" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,45 · exhaustif racines : F1 0,492 ± 0,051</title></circle>
+<circle cx="813.0" cy="181.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,50 · exhaustif racines : F1 0,555 ± 0,037</title></circle>
+<circle cx="838.7" cy="187.2" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,55 · exhaustif racines : F1 0,536 ± 0,046</title></circle>
+<circle cx="864.5" cy="190.7" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,60 · exhaustif racines : F1 0,524 ± 0,024</title></circle>
+<circle cx="890.2" cy="187.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,65 · exhaustif racines : F1 0,535 ± 0,030</title></circle>
+<circle cx="916.0" cy="187.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>union · forêt 0,70 · exhaustif racines : F1 0,534 ± 0,035</title></circle>
+<circle cx="813.0" cy="181.4" r="8" fill="none" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="813.0" y="169.4" font-size="10" text-anchor="middle" fill="#0b0b0b">article (Trim)</text>
+<polygon points="710.0,100.8 735.8,100.7 761.5,101.5 787.3,101.1 813.0,105.4 838.7,112.1 864.5,140.6 890.2,207.9 916.0,177.4 916.0,198.2 890.2,224.3 864.5,175.9 838.7,125.6 813.0,128.3 787.3,129.0 761.5,128.0 735.8,128.4 710.0,127.6" fill="#eb6834" fill-opacity="0.12" stroke="none"/>
+<polyline points="710.0,114.2 735.8,114.5 761.5,114.7 787.3,115.0 813.0,116.9 838.7,118.9 864.5,158.2 890.2,216.1 916.0,187.8" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="968.0" cy="113.2" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · arbre · exhaustif racines : F1 0,783 ± 0,048</title></circle>
+<circle cx="710.0" cy="114.2" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,30 · exhaustif racines : F1 0,779 ± 0,045</title></circle>
+<circle cx="735.8" cy="114.5" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,35 · exhaustif racines : F1 0,778 ± 0,046</title></circle>
+<circle cx="761.5" cy="114.7" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,40 · exhaustif racines : F1 0,778 ± 0,044</title></circle>
+<circle cx="787.3" cy="115.0" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,45 · exhaustif racines : F1 0,777 ± 0,046</title></circle>
+<circle cx="813.0" cy="116.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,50 · exhaustif racines : F1 0,770 ± 0,038</title></circle>
+<circle cx="838.7" cy="118.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,55 · exhaustif racines : F1 0,764 ± 0,022</title></circle>
+<circle cx="864.5" cy="158.2" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,60 · exhaustif racines : F1 0,633 ± 0,059</title></circle>
+<circle cx="890.2" cy="216.1" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,65 · exhaustif racines : F1 0,440 ± 0,027</title></circle>
+<circle cx="916.0" cy="187.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>somme · forêt 0,70 · exhaustif racines : F1 0,534 ± 0,035</title></circle>
+<text x="499" y="360" font-size="11" text-anchor="middle" fill="#52514e">seuil de coupe t</text>
+</svg>

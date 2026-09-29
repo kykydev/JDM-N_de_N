@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
-"""Étape 5 : classification d'une forme « A de B » et choix du seuil de fusion.
+"""Classification par descente dans les arbres, et évaluation sur le test (phase B).
 
-Formule 3 du papier : pour une forme « A de B » et une règle < sL, sR, rt >,
+Score d'une forme « A de B » contre un nœud < sL, sR > (formule 3 de l'article) :
 
     score = ½ × [ sim(s(A), sL) + sim(s(B), sR) ]
 
-Le score est calculé contre TOUTES les règles de TOUS les types ; le `rt` de la règle
-la mieux classée est la prédiction. Les deux côtés restent séparés : jamais de
-concaténation, « vin de France » n'est pas « France de vin ».
+C'est la MOYENNE, alors que la construction des arbres fusionne sur le MINIMUM des deux
+côtés. L'asymétrie est voulue : exigeant pour fusionner, fidèle à la formule publiée
+pour classer.
 
-Trois mesures de similarité sont comparées. Elles ne diffèrent que par la pénalité
-infligée à une règle large, ce qui est précisément la question que pose la fusion :
-le cosinus divise par la racine de la taille de la règle, l'indice de Tversky par une
-fraction de ce qu'elle contient en trop, la couverture par rien du tout.
+Descente, dans chacun des quinze arbres : partir de la racine ; tant que le meilleur
+des deux enfants fait STRICTEMENT mieux que le nœud courant, y descendre ; sinon
+s'arrêter. Une feuille est un arrêt naturel. Un nœud interne peut donc répondre :
+c'est le cas où la forme emprunte des traits à plusieurs exemples connus sans
+ressembler parfaitement à aucun. L'arbre dont la réponse a le meilleur score donne la
+prédiction.
 
-Tout est mesuré sur le jeu de CALIBRAGE (10 exemples par type, tirés du train à
-l'étape 4). **Le split test n'est ni lu ni ouvert.** Aucune des trois expériences de
-l'article n'est menée ici : traits, définitude et élagage sont l'étape 6.
+Deux références sont classées avec les mêmes arbres : le plus proche voisin sur les
+750 feuilles, et le meilleur des 1485 nœuds. Elles disent si la descente généralise et
+si elle se trompe de branche.
+
+La méthode n'a aucun paramètre libre : l'évaluation directe sur le test est légitime.
 
 Usage : python3 src/classify.py
 """
@@ -24,152 +28,225 @@ Usage : python3 src/classify.py
 import csv
 import json
 import statistics
-import sys
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 import config
 import grasp
-import signatures as sig
+
+
+CHEMIN_PREDICTIONS = config.DOSSIER_RESULTATS / "test_predictions.json"
+CHEMIN_MATRICE = config.DOSSIER_RESULTATS / "matrice_confusion.csv"
+
+# Scores publiés par l'article (Tableau 3) : précision, rappel, F1 par type.
+ARTICLE_PAR_TYPE = {
+    "r_lieu>origine": (100, 86, 0.92), "r_social_tie": (83, 100, 0.91),
+    "r_holo": (78, 86, 0.82), "r_quantificateur": (82, 80, 0.81),
+    "r_processus_agent": (71, 93, 0.81), "r_depict": (88, 73, 0.80),
+    "r_objet>matiere": (78, 83, 0.80), "r_processus>instr-1": (77, 80, 0.78),
+    "r_lieu": (84, 70, 0.76), "r_topic": (68, 86, 0.76),
+    "r_processus_patient": (74, 76, 0.75), "r_product_of": (76, 73, 0.74),
+    "r_has_causatif": (76, 63, 0.69), "r_own-1": (65, 63, 0.64),
+    "r_has_property-1": (71, 50, 0.59),
+}
+ARTICLE_F1 = 0.772
+
+# F1 de la méthode à seuil précédente (fusion « les deux » à 0,50, classification
+# exhaustive), relevés sur le même test avant son remplacement.
+ANCIEN_F1 = 0.597
+ANCIEN_PAR_TYPE = {
+    "r_depict": 0.66, "r_has_causatif": 0.53, "r_has_property-1": 0.76,
+    "r_holo": 0.35, "r_lieu": 0.67, "r_lieu>origine": 0.72, "r_objet>matiere": 0.68,
+    "r_own-1": 0.54, "r_processus>instr-1": 0.61, "r_processus_agent": 0.50,
+    "r_processus_patient": 0.69, "r_product_of": 0.48, "r_quantificateur": 0.57,
+    "r_social_tie": 0.79, "r_topic": 0.41,
+}
+
+# Tranches de poids des nœuds d'arrêt, bornes incluses.
+TRANCHES_POIDS = ((1, 1), (2, 2), (3, 5), (6, 10), (11, 25), (26, 50))
+
+# En deçà de cette profondeur moyenne d'arrêt, un arbre est jugé court-circuité à la
+# racine : ses descentes s'arrêtent presque toutes au premier pas.
+PROFONDEUR_COURTE = 1.5
+
+# Tolérance sur l'égalité de deux scores, pour ne pas compter un arrondi flottant comme
+# une erreur de branche.
+EPSILON = 1e-12
 
 
 # ---------------------------------------------------------------------------
-# Lecture des entrées
+# Score et descente
 # ---------------------------------------------------------------------------
 
-def charger_signatures():
-    """Lit data/signatures/signatures_termes.json. Retourne terme -> ensemble."""
-    brut = json.loads(config.FICHIER_SIGNATURES.read_text(encoding="utf-8"))
-    return {terme: set(symboles) for terme, symboles in brut.items()}
+def score_noeud(signature_a, signature_b, noeud):
+    """Formule 3 : moyenne des deux similarités, côté par côté. Retourne un flottant."""
+    return 0.5 * (grasp.similarite_cote(signature_a, noeud, "L")
+                  + grasp.similarite_cote(signature_b, noeud, "R"))
 
 
-def charger_calibrage():
-    """Lit les exemples de calibrage. Retourne une liste de dicts {syntagme, A, B, rt}.
-
-    Le fichier ne contient que du train : le split test n'y figure pas."""
-    exemples = []
-    with open(config.FICHIER_SPLIT_CALIBRAGE, encoding="utf-8", newline="") as f:
-        for ligne in csv.DictReader(f):
-            if ligne["sous_split"] != "calibrage":
-                continue
-            exemples.append({"syntagme": ligne["syntagme"], "A": ligne["A"],
-                             "B": ligne["B"], "rt": ligne["relation"]})
-    return exemples
+def etape(noeud, score):
+    """Trace d'un niveau de la descente. Retourne un dict."""
+    return {"id": noeud["id"], "profondeur": noeud["profondeur"],
+            "poids": noeud["poids"], "score": score, "enfants": []}
 
 
-def charger_modele(chemin):
-    """Lit un fichier de règles fusionnées. Retourne une liste de règles.
+def descendre(signature_a, signature_b, noeuds, racine):
+    """Descend un arbre tant qu'un enfant fait strictement mieux. Retourne un dict.
 
-    Les signatures redeviennent des ensembles, et chaque règle reçoit son rang, qui
-    sert d'identifiant stable et départage les ex aequo."""
-    charge = json.loads(chemin.read_text(encoding="utf-8"))
-    regles = []
-    for rang, regle in enumerate(charge["regles"]):
-        regles.append({"id": rang, "rt": regle["rt"], "poids": regle["poids"],
-                       "sL": set(regle["sL"]), "sR": set(regle["sR"]),
-                       "exemples": regle["exemples"]})
-    return regles
-
-
-def modeles_disponibles():
-    """Les modèles gloutons déjà appris, par seuil croissant. Retourne une liste."""
-    trouves = []
-    for seuil in config.GRASP_SEUILS:
-        chemin = grasp.nom_fichier_modele("glouton", seuil)
-        if chemin.exists():
-            trouves.append({"seuil": seuil, "chemin": chemin})
-    return trouves
-
-
-# ---------------------------------------------------------------------------
-# Les trois mesures de similarité
-# ---------------------------------------------------------------------------
-
-def mesure_cosinus(signature_terme, signature_regle):
-    """Cosinus sur ensembles, la mesure du papier. Retourne un flottant de 0 à 1.
-
-    Symétrique, et le dénominateur contient la taille de la règle : une règle large est
-    pénalisée pour sa largeur. Déléguée telle quelle à signatures.py."""
-    return sig.similarite(signature_terme, signature_regle)
+    À égalité entre les deux enfants, le premier — le plus ancien dans le corpus — est
+    retenu. Chaque score calculé compte pour un calcul."""
+    courant = noeuds[racine]
+    score = score_noeud(signature_a, signature_b, courant)
+    calculs, chemin = 1, []
+    while True:
+        niveau = etape(courant, score)
+        chemin.append(niveau)
+        if grasp.est_feuille(courant):
+            break
+        meilleur, meilleur_score = None, -1.0
+        for enfant in courant["enfants"]:
+            score_enfant = score_noeud(signature_a, signature_b, noeuds[enfant])
+            calculs += 1
+            niveau["enfants"].append({"id": enfant, "score": score_enfant})
+            if score_enfant > meilleur_score:
+                meilleur, meilleur_score = noeuds[enfant], score_enfant
+        if meilleur_score <= score:
+            break
+        courant, score = meilleur, meilleur_score
+    return {"rt": courant["rt"], "arret": courant["id"], "score": score,
+            "chemin": chemin, "calculs": calculs}
 
 
-def mesure_couverture(signature_terme, signature_regle):
-    """Part de la signature du terme expliquée par la règle. Retourne un flottant.
+def classer_par_descente(signature_a, signature_b, noeuds, racines):
+    """Descend les quinze arbres et garde la meilleure réponse. Retourne un dict.
 
-    Asymétrique et sans aucune pénalité de taille : une règle qui contient tout couvre
-    tout le monde. C'est l'hypothèse inverse du cosinus, pas un compromis."""
-    if not signature_terme:
-        return 0.0
-    return len(signature_terme & signature_regle) / len(signature_terme)
-
-
-def mesure_tversky(signature_terme, signature_regle):
-    """Indice de Tversky asymétrique. Retourne un flottant de 0 à 1.
-
-    |s∩r| / (|s∩r| + |s\\r| + β|r\\s|) : ce que la règle n'explique pas du terme compte
-    plein pot, ce que la règle contient en trop ne compte qu'à hauteur de β. À β = 0 on
-    retrouve la couverture, à β = 1 l'indice de Jaccard. C'est le compromis que les deux
-    autres mesures encadrent."""
-    communs = len(signature_terme & signature_regle)
-    if not communs:
-        return 0.0
-    manquants = len(signature_terme - signature_regle)
-    excedent = len(signature_regle - signature_terme)
-    return communs / (communs + manquants + config.TVERSKY_BETA * excedent)
+    Ex aequo entre arbres départagés par l'identifiant du nœud d'arrêt."""
+    reponses = [descendre(signature_a, signature_b, noeuds, racines[rt])
+                for rt in sorted(racines)]
+    reponses.sort(key=lambda r: (-r["score"], r["arret"]))
+    return {"gagnante": reponses[0], "reponses": reponses,
+            "calculs": sum(r["calculs"] for r in reponses)}
 
 
-MESURES = {"cosinus": mesure_cosinus, "tversky": mesure_tversky,
-           "couverture": mesure_couverture}
+def classer_exhaustif(signature_a, signature_b, candidats):
+    """Score chaque candidat, garde le meilleur. Retourne (id, score, id -> score).
+
+    Ex aequo départagés par le plus petit identifiant."""
+    scores = {}
+    meilleur, meilleur_score = None, -1.0
+    for noeud in candidats:
+        score = score_noeud(signature_a, signature_b, noeud)
+        scores[noeud["id"]] = score
+        if score > meilleur_score:
+            meilleur, meilleur_score = noeud["id"], score
+    return meilleur, meilleur_score, scores
 
 
 # ---------------------------------------------------------------------------
-# Classification (formule 3)
+# Structure des arbres
 # ---------------------------------------------------------------------------
 
-def score_regle(signature_a, signature_b, regle, mesure):
-    """Score d'une règle pour une forme « A de B ». Retourne un flottant.
+def parents_des_noeuds(noeuds):
+    """Le parent de chaque nœud, None pour une racine. Retourne id -> id."""
+    parents = {identifiant: None for identifiant in noeuds}
+    for noeud in noeuds.values():
+        for enfant in noeud["enfants"] or []:
+            parents[enfant] = noeud["id"]
+    return parents
 
-    Moyenne des deux similarités, gauche avec gauche et droite avec droite."""
-    return 0.5 * (mesure(signature_a, regle["sL"]) + mesure(signature_b, regle["sR"]))
+
+def ancetres(identifiant, parents):
+    """Le nœud et tous ses ancêtres jusqu'à la racine. Retourne une liste."""
+    lignee = []
+    while identifiant is not None:
+        lignee.append(identifiant)
+        identifiant = parents[identifiant]
+    return lignee
 
 
-def classer_exemple(exemple, regles, signatures, mesure):
-    """Classe une forme contre toutes les règles. Retourne un dict de prédiction.
+def tailles_des_types(noeuds):
+    """Nombre de feuilles de chaque type. Retourne relation -> entier."""
+    tailles = defaultdict(int)
+    for noeud in noeuds.values():
+        if grasp.est_feuille(noeud):
+            tailles[noeud["rt"]] += 1
+    return dict(tailles)
 
-    Les ex aequo sont départagés par l'identifiant de la règle, pour que la prédiction
-    ne dépende pas de l'ordre de parcours."""
-    signature_a = signatures.get(exemple["A"], {exemple["A"]})
-    signature_b = signatures.get(exemple["B"], {exemple["B"]})
 
-    meilleure, meilleur_score = None, -1.0
-    scores_du_bon_type = []
-    for regle in regles:
-        score = score_regle(signature_a, signature_b, regle, mesure)
-        if regle["rt"] == exemple["rt"]:
-            scores_du_bon_type.append(score)
-        if score > meilleur_score or (score == meilleur_score
-                                      and regle["id"] < meilleure["id"]):
-            meilleure, meilleur_score = regle, score
+def ids_par_type(noeuds):
+    """Identifiants des nœuds de chaque arbre, croissants. Retourne relation -> liste."""
+    par_type = defaultdict(list)
+    for identifiant in sorted(noeuds):
+        par_type[noeuds[identifiant]["rt"]].append(identifiant)
+    return par_type
 
+
+# ---------------------------------------------------------------------------
+# Classification des trois méthodes
+# ---------------------------------------------------------------------------
+
+def signatures_de_ligne(ligne, signatures):
+    """Signatures de A et de B d'une ligne de test. Retourne un couple d'ensembles."""
+    return grasp.cotes_de_ligne(ligne, signatures)
+
+
+def resume_noeud(noeud):
+    """Ce qu'une prédiction retient du nœud qui l'a faite. Retourne un dict."""
+    return {"id": noeud["id"], "rt": noeud["rt"], "poids": noeud["poids"],
+            "profondeur": noeud["profondeur"], "hauteur": noeud["hauteur"],
+            "feuille": grasp.est_feuille(noeud), "syntagmes": noeud["syntagmes"]}
+
+
+def prediction_descente(ligne, resultat, noeuds):
+    """Met en forme le résultat d'une descente pour une ligne. Retourne un dict."""
+    gagnante = resultat["gagnante"]
     return {
-        "syntagme": exemple["syntagme"], "A": exemple["A"], "B": exemple["B"],
-        "attendu": exemple["rt"], "predit": meilleure["rt"], "score": meilleur_score,
-        "correct": meilleure["rt"] == exemple["rt"],
-        "regle": {"id": meilleure["id"], "rt": meilleure["rt"],
-                  "poids": meilleure["poids"], "sL": len(meilleure["sL"]),
-                  "sR": len(meilleure["sR"]),
-                  "orpheline": meilleure["poids"] == 1,
-                  "exemples": meilleure["exemples"]},
-        "score_moyen_bon_type": (statistics.fmean(scores_du_bon_type)
-                                 if scores_du_bon_type else 0.0),
-        "score_max_bon_type": max(scores_du_bon_type) if scores_du_bon_type else 0.0,
+        "syntagme": ligne["syntagme"], "A": ligne["A"], "B": ligne["B"],
+        "attendu": ligne["rt"], "predit": gagnante["rt"], "score": gagnante["score"],
+        "correct": gagnante["rt"] == ligne["rt"],
+        "noeud_arret": resume_noeud(noeuds[gagnante["arret"]]),
+        "chemin": gagnante["chemin"],
+        "reponses": [{"rt": r["rt"], "id": r["arret"], "score": r["score"],
+                      "profondeur": noeuds[r["arret"]]["profondeur"],
+                      "poids": noeuds[r["arret"]]["poids"],
+                      "feuille": grasp.est_feuille(noeuds[r["arret"]])}
+                     for r in resultat["reponses"]],
+        "calculs": resultat["calculs"],
     }
 
 
-def classer_tous(exemples, regles, signatures, mesure):
-    """Classe tous les exemples de calibrage. Retourne une liste de prédictions."""
-    return [classer_exemple(exemple, regles, signatures, mesure)
-            for exemple in exemples]
+def prediction_exhaustive(ligne, identifiant, score, noeuds, calculs):
+    """Met en forme le résultat d'une référence exhaustive. Retourne un dict."""
+    noeud = noeuds[identifiant]
+    return {"syntagme": ligne["syntagme"], "attendu": ligne["rt"],
+            "predit": noeud["rt"], "score": score, "correct": noeud["rt"] == ligne["rt"],
+            "noeud_arret": resume_noeud(noeud), "calculs": calculs}
+
+
+def lancer_descente(lignes, signatures, noeuds, racines):
+    """Classe le test par descente. Retourne (prédictions, durée)."""
+    debut = time.perf_counter()
+    predictions = []
+    for ligne in lignes:
+        signature_a, signature_b = signatures_de_ligne(ligne, signatures)
+        resultat = classer_par_descente(signature_a, signature_b, noeuds, racines)
+        predictions.append(prediction_descente(ligne, resultat, noeuds))
+    return predictions, time.perf_counter() - debut
+
+
+def lancer_exhaustif(lignes, signatures, noeuds, candidats):
+    """Classe le test contre une liste de candidats. Retourne (prédictions, durée, scores)."""
+    debut = time.perf_counter()
+    predictions, tous_scores = [], []
+    for ligne in lignes:
+        signature_a, signature_b = signatures_de_ligne(ligne, signatures)
+        identifiant, score, scores = classer_exhaustif(signature_a, signature_b,
+                                                       candidats)
+        predictions.append(prediction_exhaustive(ligne, identifiant, score, noeuds,
+                                                 len(candidats)))
+        tous_scores.append(scores)
+    return predictions, time.perf_counter() - debut, tous_scores
 
 
 # ---------------------------------------------------------------------------
@@ -196,10 +273,9 @@ def precision_rappel_f1(vp, predits, attendus):
 
 
 def evaluer(predictions, types):
-    """Précision, rappel et F1 macro, plus le détail par type. Retourne un dict.
+    """Précision, rappel et F1 par type puis en macro. Retourne un dict.
 
-    Macro : moyenne non pondérée sur les types attendus, chacun comptant pour un, quel
-    que soit le nombre de prédictions qu'il a reçues."""
+    Macro : moyenne non pondérée sur les types, chacun comptant pour un."""
     comptes = comptes_par_type(predictions)
     par_type = {}
     for type_relation in types:
@@ -220,191 +296,246 @@ def evaluer(predictions, types):
     }
 
 
+def evaluer_sous_ensemble(predictions):
+    """F1 macro et exactitude d'une partie des prédictions. Retourne un dict ou None.
+
+    La macro porte sur les types présents dans la partie, attendus ou prédits : un type
+    absent n'a ni précision ni rappel à y mesurer."""
+    if not predictions:
+        return None
+    types = sorted({p["attendu"] for p in predictions} | {p["predit"] for p in predictions})
+    return evaluer(predictions, types)
+
+
+def matrice_confusion(predictions, types):
+    """Compte les prédictions pour chaque couple (attendu, prédit). Retourne un dict de dicts."""
+    matrice = {attendu: {predit: 0 for predit in types} for attendu in types}
+    for prediction in predictions:
+        matrice[prediction["attendu"]][prediction["predit"]] += 1
+    return matrice
+
+
+def part_interne(predictions):
+    """Part des prédictions faites par un nœud interne. Retourne un flottant."""
+    if not predictions:
+        return 0.0
+    return sum(1 for p in predictions if not p["noeud_arret"]["feuille"]) / len(predictions)
+
+
 # ---------------------------------------------------------------------------
-# Traçabilité des règles gagnantes
+# Mesures de généralisation
 # ---------------------------------------------------------------------------
 
-def grandes_regles(regles, part):
-    """Identifiants des règles les plus grandes par taille totale. Retourne un ensemble."""
-    if not regles:
-        return set()
-    classees = sorted(regles, key=lambda r: (-(len(r["sL"]) + len(r["sR"])), r["id"]))
-    combien = max(1, int(round(part * len(classees))))
-    return {regle["id"] for regle in classees[:combien]}
+def tranche_de_poids(poids):
+    """Libellé de la tranche d'un poids. Retourne une chaîne."""
+    for bas, haut in TRANCHES_POIDS:
+        if bas <= poids <= haut:
+            return str(bas) if bas == haut else f"{bas}–{haut}"
+    return f"> {TRANCHES_POIDS[-1][1]}"
 
 
-def tracer_gagnantes(predictions, regles):
-    """Mesure qui gagne, et ce que coûtent les règles qui ne gagnent jamais.
-    Retourne un dict."""
-    par_id = {regle["id"]: regle for regle in regles}
-    gagnantes = Counter(prediction["regle"]["id"] for prediction in predictions)
-    jamais = [regle for regle in regles if regle["id"] not in gagnantes]
-
-    victoires_orphelines = sum(1 for p in predictions if p["regle"]["orpheline"])
-    poids_gagnants = [p["regle"]["poids"] for p in predictions]
-    tailles_gagnantes = [p["regle"]["sL"] + p["regle"]["sR"] for p in predictions]
-
-    fusionnees = [regle for regle in regles if regle["poids"] > 1]
-    fusionnees_gagnantes = {identifiant for identifiant in gagnantes
-                            if par_id[identifiant]["poids"] > 1}
-    grandes = grandes_regles(regles, config.PART_GRANDES_REGLES)
-    victoires_grandes = sum(1 for p in predictions if p["regle"]["id"] in grandes)
-
-    orphelines = [regle for regle in regles if regle["poids"] == 1]
-    orphelines_gagnantes = {identifiant for identifiant in gagnantes
-                            if par_id[identifiant]["poids"] == 1}
-    taux_orpheline = len(orphelines_gagnantes) / len(orphelines) if orphelines else 0.0
-    taux_fusionnee = len(fusionnees_gagnantes) / len(fusionnees) if fusionnees else 0.0
-
+def stats_generalisation(predictions):
+    """Arrêts internes, poids et profondeurs des nœuds d'arrêt. Retourne un dict."""
+    gagnants = [p["noeud_arret"] for p in predictions]
+    toutes = [r for p in predictions for r in p["reponses"]]
+    feuilles = [p for p in predictions if p["noeud_arret"]["feuille"]]
+    internes = [p for p in predictions if not p["noeud_arret"]["feuille"]]
+    par_arbre = defaultdict(list)
+    for reponse in toutes:
+        par_arbre[reponse["rt"]].append(reponse)
     return {
-        "regles": len(regles),
-        "regles_distinctes_gagnantes": len(gagnantes),
-        "n_orphelines": len(orphelines), "n_fusionnees": len(fusionnees),
-        "taux_gagnantes_orphelines": taux_orpheline,
-        "taux_gagnantes_fusionnees": taux_fusionnee,
-        "rapport_taux": taux_fusionnee / taux_orpheline if taux_orpheline else 0.0,
-        "part_victoires_orphelines": victoires_orphelines / len(predictions),
-        "part_victoires_fusionnees": 1 - victoires_orphelines / len(predictions),
-        "part_regles_fusionnees": len(fusionnees) / len(regles) if regles else 0.0,
-        "fusionnees_gagnantes": len(fusionnees_gagnantes),
-        "fusionnees_jamais": len(fusionnees) - len(fusionnees_gagnantes),
-        "jamais_gagnantes": len(jamais),
-        "exemples_gaspilles": sum(regle["poids"] for regle in jamais),
-        "exemples_gaspilles_fusion": sum(regle["poids"] for regle in jamais
-                                         if regle["poids"] > 1),
-        "poids_gagnant_median": statistics.median(poids_gagnants),
-        "poids_gagnant_max": max(poids_gagnants),
-        "taille_gagnante_mediane": statistics.median(tailles_gagnantes),
-        "taille_gagnante_max": max(tailles_gagnantes),
-        "part_victoires_grandes": victoires_grandes / len(predictions),
-        "score_gagnant_moyen": statistics.fmean([p["score"] for p in predictions]),
-        "score_moyen_bon_type": statistics.fmean(
-            [p["score_moyen_bon_type"] for p in predictions]),
-        "score_max_bon_type": statistics.fmean(
-            [p["score_max_bon_type"] for p in predictions]),
+        "part_interne_gagnantes": part_interne(predictions),
+        "part_interne_toutes": sum(1 for r in toutes if not r["feuille"]) / len(toutes),
+        "n_descentes": len(toutes),
+        "par_arbre": {rt: {"part_interne": sum(1 for r in lot if not r["feuille"])
+                                           / len(lot),
+                           "profondeur_moyenne": statistics.fmean(
+                               r["profondeur"] for r in lot)}
+                      for rt, lot in par_arbre.items()},
+        "feuilles": evaluer_sous_ensemble(feuilles), "n_feuilles": len(feuilles),
+        "internes": evaluer_sous_ensemble(internes), "n_internes": len(internes),
+        "poids_gagnants": Counter(tranche_de_poids(n["poids"]) for n in gagnants),
+        "poids_toutes": Counter(tranche_de_poids(r["poids"]) for r in toutes),
+        "profondeurs_gagnantes": Counter(n["profondeur"] for n in gagnants),
+        "profondeurs_toutes": Counter(r["profondeur"] for r in toutes),
+        "calculs_moyens": statistics.fmean(p["calculs"] for p in predictions),
+        "calculs_max": max(p["calculs"] for p in predictions),
     }
 
 
-# ---------------------------------------------------------------------------
-# Abstention
-# ---------------------------------------------------------------------------
-
-def mesurer_abstention(predictions, types, seuil):
-    """Effet d'un seuil d'abstention sur le calibrage. Retourne un dict."""
-    retenues = [p for p in predictions if p["score"] >= seuil]
-    abstenues = [p for p in predictions if p["score"] < seuil]
-    perdues = sum(1 for p in abstenues if p["correct"])
-    evaluation = evaluer(retenues, types) if retenues else None
-    return {
-        "seuil": seuil,
-        "abstentions": len(abstenues),
-        "taux_abstention": len(abstenues) / len(predictions),
-        "f1": evaluation["f1"] if evaluation else 0.0,
-        "exactitude": evaluation["exactitude"] if evaluation else 0.0,
-        "bonnes_perdues": perdues,
-        "part_abstenues_correctes": perdues / len(abstenues) if abstenues else 0.0,
-    }
-
-
-def distribution_scores(predictions):
-    """Repères de la distribution des scores gagnants. Retourne un dict."""
-    scores = sorted(p["score"] for p in predictions)
-    return {"min": scores[0], "c10": sig.centile(scores, 0.10),
-            "mediane": statistics.median(scores), "c90": sig.centile(scores, 0.90),
-            "max": scores[-1], "moyenne": statistics.fmean(scores)}
+def interne_par_type_predit(predictions):
+    """Part des prédictions de chaque type faites par un nœud interne.
+    Retourne type -> (part, nombre)."""
+    par_type = defaultdict(list)
+    for prediction in predictions:
+        par_type[prediction["predit"]].append(prediction)
+    return {rt: (part_interne(lot), len(lot)) for rt, lot in par_type.items()}
 
 
 # ---------------------------------------------------------------------------
-# Écriture des résultats
+# Diagnostic des erreurs de branche
 # ---------------------------------------------------------------------------
 
-def ecrire_resultats(mesure, seuil, predictions, evaluation, trace):
-    """Écrit data/resultats/calibrage_<mesure>_<seuil>.json. Retourne le chemin."""
-    marque = f"{int(round(seuil * 100)):03d}"
-    chemin = config.DOSSIER_RESULTATS / f"calibrage_{mesure}_{marque}.json"
-    chemin.parent.mkdir(parents=True, exist_ok=True)
+def meilleur_du_type(scores, identifiants):
+    """Le nœud de meilleur score parmi ceux d'un arbre. Retourne (id, score)."""
+    meilleur = max(identifiants, key=lambda i: (scores[i], -i))
+    return meilleur, scores[meilleur]
+
+
+def diagnostiquer(reponse, scores, identifiants, parents, noeuds):
+    """Compare l'arrêt d'une descente au meilleur nœud de son arbre. Retourne un dict.
+
+    « optimale » : la descente trouve le maximum de l'arbre. « arrêt prématuré » : le
+    maximum est sous le nœud d'arrêt, la descente s'est arrêtée trop tôt. « mauvaise
+    branche » : le maximum est ailleurs ; le niveau est la profondeur du dernier
+    ancêtre commun, là où la descente a pris le mauvais enfant."""
+    meilleur, meilleur_score = meilleur_du_type(scores, identifiants)
+    if reponse["score"] >= meilleur_score - EPSILON:
+        return {"nature": "optimale", "niveau": None, "perte": 0.0}
+    lignee_meilleur = ancetres(meilleur, parents)
+    if reponse["arret"] in lignee_meilleur:
+        return {"nature": "arrêt prématuré",
+                "niveau": noeuds[reponse["arret"]]["profondeur"],
+                "perte": meilleur_score - reponse["score"]}
+    lignee_arret = set(ancetres(reponse["arret"], parents))
+    commun = next(i for i in lignee_meilleur if i in lignee_arret)
+    return {"nature": "mauvaise branche", "niveau": noeuds[commun]["profondeur"],
+            "perte": meilleur_score - reponse["score"]}
+
+
+def diagnostics_de_branche(predictions, tous_scores, noeuds):
+    """Diagnostique les 15 descentes de chaque exemple. Retourne un dict.
+
+    Distingue toutes les descentes, et celles de l'arbre du type attendu, qui sont les
+    seules à pouvoir coûter un rappel."""
+    parents = parents_des_noeuds(noeuds)
+    par_type = ids_par_type(noeuds)
+    toutes, attendues = [], []
+    for prediction, scores in zip(predictions, tous_scores):
+        for reponse in prediction["reponses"]:
+            reponse_arbre = {"arret": reponse["id"], "score": reponse["score"]}
+            diagnostic = diagnostiquer(reponse_arbre, scores, par_type[reponse["rt"]],
+                                       parents, noeuds)
+            diagnostic["rt"] = reponse["rt"]
+            toutes.append(diagnostic)
+            if reponse["rt"] == prediction["attendu"]:
+                attendues.append(diagnostic)
+    return {"toutes": toutes, "attendues": attendues}
+
+
+def resume_diagnostics(diagnostics):
+    """Compte natures et niveaux d'erreur. Retourne un dict."""
+    natures = Counter(d["nature"] for d in diagnostics)
+    branche = [d for d in diagnostics if d["nature"] == "mauvaise branche"]
+    premature = [d for d in diagnostics if d["nature"] == "arrêt prématuré"]
+    pertes = [d["perte"] for d in diagnostics if d["nature"] != "optimale"]
+    return {"total": len(diagnostics), "natures": natures,
+            "niveaux_branche": Counter(d["niveau"] for d in branche),
+            "niveaux_premature": Counter(d["niveau"] for d in premature),
+            "perte_mediane": statistics.median(pertes) if pertes else 0.0,
+            "perte_max": max(pertes) if pertes else 0.0}
+
+
+def croiser_references(descente, tous_noeuds, diagnostics):
+    """Exemples où descente et exhaustif divergent, et pourquoi. Retourne un dict.
+
+    Pour chaque exemple que l'exhaustif réussit et que la descente rate, on regarde la
+    descente de l'arbre attendu : si elle est sous-optimale, c'est elle qui a coûté."""
+    perdus, gagnes, attendues = [], [], diagnostics["attendues"]
+    for rang, (c, b) in enumerate(zip(descente, tous_noeuds)):
+        if b["correct"] and not c["correct"]:
+            perdus.append((c, attendues[rang]))
+        elif c["correct"] and not b["correct"]:
+            gagnes.append(c)
+    return {"perdus": perdus, "gagnes": gagnes,
+            "perdus_par_nature": Counter(d["nature"] for _, d in perdus),
+            "divergences": sum(1 for c, b in zip(descente, tous_noeuds)
+                               if c["predit"] != b["predit"])}
+
+
+def choix_de_descente(scores, noeuds, racine):
+    """Rejoue une descente sur des scores déjà calculés. Retourne la liste des choix.
+
+    Chaque choix est « léger », « lourd » ou « égal » selon le poids de l'enfant retenu
+    face à son frère ; « arrêt » quand aucun enfant ne fait mieux."""
+    choix, courant = [], noeuds[racine]
+    while not grasp.est_feuille(courant):
+        enfants = [noeuds[e] for e in courant["enfants"]]
+        meilleur = max(enfants, key=lambda e: (scores[e["id"]], -enfants.index(e)))
+        if scores[meilleur["id"]] <= scores[courant["id"]]:
+            choix.append("arrêt")
+            break
+        poids = sorted(e["poids"] for e in enfants)
+        if poids[0] == poids[1]:
+            choix.append("égal")
+        else:
+            choix.append("léger" if meilleur["poids"] == poids[0] else "lourd")
+        courant = meilleur
+    return choix
+
+
+def choix_aux_embranchements(tous_scores, noeuds, racines):
+    """Compte vers quel enfant partent les descentes, à la racine et partout.
+    Retourne un dict de compteurs."""
+    racine, partout = Counter(), Counter()
+    for scores in tous_scores:
+        for rt in sorted(racines):
+            choix = choix_de_descente(scores, noeuds, racines[rt])
+            racine[choix[0]] += 1
+            partout.update(choix)
+    return {"racine": racine, "partout": partout}
+
+
+# ---------------------------------------------------------------------------
+# Écriture des sorties de données
+# ---------------------------------------------------------------------------
+
+def ecrire_predictions(predictions, evaluation, references):
+    """Écrit data/resultats/test_predictions.json. Retourne le chemin.
+
+    Pour chaque exemple : le chemin complet de la descente dans l'arbre gagnant, la
+    réponse de chacun des quinze arbres, et ce que prédisent les deux références."""
+    feuilles, tous = references
+    lignes = []
+    for prediction, a, b in zip(predictions, feuilles, tous):
+        ligne = dict(prediction)
+        ligne["exhaustif_feuilles"] = {"predit": a["predit"], "id": a["noeud_arret"]["id"],
+                                       "score": a["score"]}
+        ligne["exhaustif_noeuds"] = {"predit": b["predit"], "id": b["noeud_arret"]["id"],
+                                     "score": b["score"]}
+        lignes.append(ligne)
     charge = {
-        "mesure": mesure, "seuil_fusion": seuil, "split": "calibrage",
-        "n_exemples": len(predictions),
+        "split": "test (450 exemples, 30 par type)",
+        "methode": "descente dans 15 arbres de clustering hiérarchique, formule 3",
+        "modele": config.FICHIER_ARBRES.name,
         "genere_le": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "macro": {"precision": evaluation["precision"], "rappel": evaluation["rappel"],
-                  "f1": evaluation["f1"], "exactitude": evaluation["exactitude"]},
-        "trace": trace,
-        "predictions": predictions,
+        "macro_stricte": {k: evaluation[k] for k in
+                          ("precision", "rappel", "f1", "exactitude")},
+        "predictions": lignes,
     }
-    with open(chemin, "w", encoding="utf-8", newline="") as f:
+    CHEMIN_PREDICTIONS.parent.mkdir(parents=True, exist_ok=True)
+    with open(CHEMIN_PREDICTIONS, "w", encoding="utf-8", newline="") as f:
         json.dump(charge, f, ensure_ascii=False, indent=1)
         f.write("\n")
-    return chemin
+    return CHEMIN_PREDICTIONS
 
 
-def ecrire_modele_final(regles_par_type, seuil, mesure, resume):
-    """Écrit data/modeles/modele_final.json. Retourne le chemin."""
-    contenu = []
-    for relation in sorted(regles_par_type):
-        for regle in regles_par_type[relation]:
-            contenu.append(grasp.serialiser_regle(regle))
-    charge = {
-        "strategie": "glouton", "seuil": seuil,
-        "mesure_similarite": mesure,
-        "critere": "les deux (sim des A ET sim des B > seuil)",
-        "split": "train complet (50 exemples par type)",
-        "trt_centile": config.TRT_CENTILE,
-        "choisi_sur": "calibrage (10 exemples par type), split test non touché",
-        "f1_calibrage": resume.get("f1_calibrage"),
-        "h_top": config.H_TOP, "trt_politique": config.TRT_POLITIQUE,
-        "genere_le": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "n_regles": len(contenu), "resume": resume, "regles": contenu,
-    }
-    config.FICHIER_MODELE_FINAL.parent.mkdir(parents=True, exist_ok=True)
-    with open(config.FICHIER_MODELE_FINAL, "w", encoding="utf-8", newline="") as f:
-        json.dump(charge, f, ensure_ascii=False, indent=1)
-        f.write("\n")
-    return config.FICHIER_MODELE_FINAL
-
-
-# ---------------------------------------------------------------------------
-# Balayage
-# ---------------------------------------------------------------------------
-
-def lancer_balayage(exemples, signatures, types):
-    """Classe le calibrage pour chaque mesure et chaque seuil. Retourne une liste."""
-    resultats = []
-    for entree in modeles_disponibles():
-        regles = charger_modele(entree["chemin"])
-        for nom_mesure in config.MESURES_SIMILARITE:
-            predictions = classer_tous(exemples, regles, signatures,
-                                       MESURES[nom_mesure])
-            evaluation = evaluer(predictions, types)
-            trace = tracer_gagnantes(predictions, regles)
-            chemin = ecrire_resultats(nom_mesure, entree["seuil"], predictions,
-                                      evaluation, trace)
-            resultats.append({"mesure": nom_mesure, "seuil": entree["seuil"],
-                              "predictions": predictions, "evaluation": evaluation,
-                              "trace": trace, "fichier": chemin,
-                              "distribution": distribution_scores(predictions),
-                              "abstention": [mesurer_abstention(predictions, types, s)
-                                             for s in config.SEUILS_ABSTENTION]})
-            print(f"  {nom_mesure:11s} seuil {fr(entree['seuil'], 2)} : "
-                  f"F1 macro {fr(evaluation['f1'])}, "
-                  f"exactitude {pct(evaluation['exactitude'])}, "
-                  f"{pct(trace['part_victoires_orphelines'])} de victoires orphelines",
-                  flush=True)
-    return resultats
+def ecrire_matrice(matrice, types):
+    """Écrit data/resultats/matrice_confusion.csv. Retourne le chemin."""
+    CHEMIN_MATRICE.parent.mkdir(parents=True, exist_ok=True)
+    with open(CHEMIN_MATRICE, "w", encoding="utf-8", newline="") as f:
+        redacteur = csv.writer(f, lineterminator="\n")
+        redacteur.writerow(["attendu \\ prédit"] + list(types))
+        for attendu in types:
+            redacteur.writerow([attendu] + [matrice[attendu][p] for p in types])
+    return CHEMIN_MATRICE
 
 
 # ---------------------------------------------------------------------------
 # Mise en forme
 # ---------------------------------------------------------------------------
 
-def fr(valeur, decimales=3):
-    """Formate un nombre à la française, virgule décimale. Retourne une chaîne."""
-    return f"{valeur:.{decimales}f}".replace(".", ",")
-
-
-def pct(part, decimales=1):
-    """Formate une proportion en pourcentage. Retourne une chaîne."""
-    return f"{100 * part:.{decimales}f} %".replace(".", ",")
+fr, pct, tableau = grasp.fr, grasp.pct, grasp.tableau
 
 
 def ecart_signe(valeur, decimales=3):
@@ -416,482 +547,350 @@ def ecart_signe(valeur, decimales=3):
     return "="
 
 
-def tableau(entete, lignes):
-    """Construit un tableau Markdown. Retourne une liste de lignes."""
-    sortie = ["| " + " | ".join(entete) + " |", "|" + "---|" * len(entete)]
-    for ligne in lignes:
-        sortie.append("| " + " | ".join(str(c).replace("|", "\\|") for c in ligne) + " |")
-    return sortie
-
-
-def marque_papier(seuil):
-    """Signale le seuil du papier dans un tableau. Retourne une chaîne."""
-    texte = fr(seuil, 2)
-    return f"**{texte}** (papier)" if seuil == config.GRASP_SEUIL_PAPIER else texte
-
-
-def trouver(resultats, mesure, seuil):
-    """Retrouve un résultat par mesure et seuil. Retourne un dict."""
-    return next(r for r in resultats if r["mesure"] == mesure and r["seuil"] == seuil)
-
-
-def par_mesure(resultats, mesure):
-    """Résultats d'une mesure, par seuil croissant. Retourne une liste."""
-    return [r for r in resultats if r["mesure"] == mesure]
-
-
-def meilleur_resultat(resultats):
-    """Le résultat au meilleur F1 macro. Retourne un dict.
-
-    Ex aequo départagés par le seuil de fusion le plus élevé, qui donne le modèle le
-    plus sobre, puis par l'ordre des mesures."""
-    return max(resultats, key=lambda r: (r["evaluation"]["f1"], r["seuil"]))
+def libelle_niveaux(compte):
+    """Résume un compte par niveau, du plus haut au plus profond. Retourne une chaîne."""
+    if not compte:
+        return "—"
+    return ", ".join(f"{niveau} : {compte[niveau]}" for niveau in sorted(compte))
 
 
 # ---------------------------------------------------------------------------
-# Rapport : une fonction par section
+# Rapport de phase B : une fonction par section
 # ---------------------------------------------------------------------------
 
-def section_dispositif(exemples, types, resultats):
-    """Section 1 : ce qui est classé et comment. Retourne une liste de lignes."""
-    seuils = sorted({r["seuil"] for r in resultats})
-    return ["## 1. Dispositif", "",
-            f"- **Jeu évalué** : les {len(exemples)} exemples de calibrage, "
-            f"{len(exemples) // len(types)} par type, tirés du train à l'étape 4. "
-            "**Le split test n'est ni lu ni ouvert.**",
-            f"- **Modèles** : les {len(seuils)} modèles gloutons déjà appris "
-            f"(`data/modeles/`), seuils de fusion {fr(min(seuils), 2)} à "
-            f"{fr(max(seuils), 2)}. Rien n'est réappris pour le balayage.",
-            "- **Formule 3** : `score = ½ [ sim(s(A), sL) + sim(s(B), sR) ]`, calculé "
-            "contre toutes les règles de tous les types. Le `rt` de la mieux classée "
-            "est la prédiction. Ex aequo départagés par l'identifiant de la règle.",
-            "- **Macro** : chaque type compte pour un, quel que soit le nombre de "
-            "prédictions qu'il reçoit.",
-            f"- **Hasard** : {pct(1 / len(types))} d'exactitude attendue en tirant au "
-            f"sort parmi {len(types)} types.", ""]
+def section_dispositif(lignes_test, noeuds, racines):
+    """B.1 : ce qui est classé et comment. Retourne des lignes."""
+    feuilles = sum(1 for n in noeuds.values() if grasp.est_feuille(n))
+    return ["## B. Classification par descente", "",
+            "### B.1 Dispositif", "",
+            f"- **Jeu évalué** : les {len(lignes_test)} exemples de test, "
+            f"{len(lignes_test) // len(racines)} par type. La méthode n'a **aucun "
+            "paramètre libre** — ni seuil de fusion, ni seuil d'arrêt, ni mesure à "
+            "choisir — donc rien n'a pu être réglé sur ce jeu.",
+            "- **Score** : `½ [ sim(s(A), sL) + sim(s(B), sR) ]`, formule 3 de l'article, "
+            "cosinus sur ensembles.",
+            "- **Asymétrie voulue** : la construction fusionne sur le **minimum** des "
+            "deux côtés, la classification score sur la **moyenne**. Exigeant pour "
+            "fusionner, fidèle à la formule publiée pour classer. Conséquence à garder "
+            "en tête : un côté parfait peut porter un côté nul à la classification, ce "
+            "qu'il ne pouvait pas faire à la construction.",
+            f"- **Descente** : dans chacun des {len(racines)} arbres, de la racine vers le "
+            "meilleur enfant tant qu'il fait **strictement** mieux que le nœud courant. "
+            "L'arbre dont la réponse a le meilleur score donne la prédiction.",
+            f"- **Références**, avec les mêmes arbres : (a) plus proche voisin sur les "
+            f"{feuilles} feuilles ; (b) meilleur des {len(noeuds)} nœuds ; (c) la "
+            "descente.", ""]
 
 
-def section_classification(resultats):
-    """Section 2 : les scores macro par mesure et par seuil. Retourne des lignes."""
-    lignes = ["## 2. Tâche 1 — classification du calibrage", ""]
-    for nom_mesure in config.MESURES_SIMILARITE:
-        corps = []
-        for resultat in par_mesure(resultats, nom_mesure):
-            evaluation = resultat["evaluation"]
-            corps.append([marque_papier(resultat["seuil"]),
-                          resultat["trace"]["regles"],
-                          fr(evaluation["precision"]), fr(evaluation["rappel"]),
-                          f"**{fr(evaluation['f1'])}**",
-                          f"{evaluation['corrects']}/{evaluation['total']} "
-                          f"({pct(evaluation['exactitude'], 0)})"])
-        lignes += [f"### 2.{list(config.MESURES_SIMILARITE).index(nom_mesure) + 1} "
-                   f"Mesure « {nom_mesure} »", ""]
-        lignes += tableau(["seuil de fusion", "règles", "précision macro",
-                           "rappel macro", "F1 macro", "exactitude"], corps)
-        lignes += [""]
+def section_references(resultats):
+    """B.2 : les trois méthodes côte à côte. Retourne des lignes."""
+    corps = []
+    for nom, cle in (("(a) feuilles, exhaustif", "a"), ("(b) tous les nœuds, exhaustif", "b"),
+                     ("(c) descente", "c")):
+        r = resultats[cle]
+        corps.append([f"**{nom}**", fr(r["evaluation"]["precision"]),
+                      fr(r["evaluation"]["rappel"]), f"**{fr(r['evaluation']['f1'])}**",
+                      pct(r["evaluation"]["exactitude"]),
+                      pct(part_interne(r["predictions"])),
+                      fr(r["calculs"], 1), fr(r["duree"], 2)])
+    a, b, c = (resultats[k]["evaluation"]["f1"] for k in "abc")
+    lignes = ["### B.2 Les trois méthodes", ""]
+    lignes += tableau(["méthode", "P macro", "R macro", "F1 macro", "exactitude",
+                       "prédictions par un nœud interne", "calculs / exemple",
+                       "temps total (s)"], corps)
+    lignes += ["",
+               f"Pour situer : article {fr(ARTICLE_F1)}, méthode à seuil précédente "
+               f"{fr(ANCIEN_F1)}. La descente fait {ecart_signe(c - ANCIEN_F1)} par "
+               f"rapport à la méthode à seuil et {ecart_signe(c - ARTICLE_F1)} par "
+               "rapport à l'article.", "",
+               "**Lecture.**", "",
+               f"- (c) contre (a) : {ecart_signe(c - a)}. "
+               + ("La descente fait **mieux que le plus proche voisin** : les nœuds "
+                  "internes qui répondent apportent quelque chose, l'arbre généralise."
+                  if c > a + EPSILON else
+                  "La descente ne fait pas mieux que le plus proche voisin : l'arbre ne "
+                  "généralise pas, ou sa généralisation ne sert pas."),
+               f"- (c) contre (b) : {ecart_signe(c - b)}, pour "
+               f"{fr(resultats['c']['calculs'], 1)} calculs par exemple au lieu de "
+               f"{fr(resultats['b']['calculs'], 0)} "
+               f"({fr(resultats['b']['calculs'] / resultats['c']['calculs'], 1)} fois "
+               "moins). "
+               + ("La descente est **au niveau** de l'exhaustif."
+                  if abs(c - b) < 0.005 else
+                  "La descente fait **mieux** que l'exhaustif : le meilleur nœud absolu "
+                  "n'est pas toujours le bon, et la descente l'évite parfois (§ B.6)."
+                  if c > b else
+                  "La descente est **en dessous** de l'exhaustif : elle se trompe de "
+                  "branche, § B.6 dit à quel niveau."),
+               f"- (b) contre (a) : {ecart_signe(b - a)}. C'est ce que vaudrait la "
+               "généralisation si on savait toujours trouver le meilleur nœud.", ""]
     return lignes
 
 
-def section_par_type(resultats, mesure, seuil):
-    """Section 2.4 : le détail par type pour une combinaison. Retourne des lignes."""
-    resultat = trouver(resultats, mesure, seuil)
+def section_par_type(evaluation, generalisation, internes_par_type):
+    """B.3 : précision, rappel, F1 par type, et arrêts internes. Retourne des lignes."""
     corps = []
-    for type_relation in sorted(resultat["evaluation"]["par_type"]):
-        detail = resultat["evaluation"]["par_type"][type_relation]
-        corps.append([f"`{type_relation}`", detail["attendus"], detail["predits"],
-                      detail["vp"], fr(detail["precision"]), fr(detail["rappel"]),
-                      fr(detail["f1"])])
-    return ([f"### 2.4 Détail par type — « {mesure} », seuil {fr(seuil, 2)}", "",
-             "« prédits » est le nombre de fois où le type a été proposé : un type qui "
-             "en reçoit beaucoup plus que 10 est un aimant, un type qui en reçoit zéro "
-             "n'est jamais proposé.", ""]
-            + tableau(["type", "attendus", "prédits", "corrects", "précision", "rappel",
-                       "F1"], corps) + [""])
+    for rt in sorted(evaluation["par_type"], key=lambda t: -evaluation["par_type"][t]["f1"]):
+        d = evaluation["par_type"][rt]
+        part, nombre = internes_par_type.get(rt, (0.0, 0))
+        arbre = generalisation["par_arbre"][rt]
+        corps.append([f"`{rt}`", d["predits"], fr(100 * d["precision"], 1),
+                      fr(100 * d["rappel"], 1), f"**{fr(d['f1'], 2)}**",
+                      fr(ANCIEN_PAR_TYPE[rt], 2), fr(ARTICLE_PAR_TYPE[rt][2], 2),
+                      pct(arbre["part_interne"], 0), fr(arbre["profondeur_moyenne"], 1),
+                      f"{pct(part, 0)} ({nombre})"])
+    return (["### B.3 Détail par type", "",
+             "- **prédits** : nombre de fois où le type est proposé, pour 30 attendus.",
+             "- **arrêts internes (arbre)** : sur les 450 descentes de cet arbre, part "
+             "qui s'arrêtent sur un nœud interne ; **profondeur moy.** : profondeur "
+             "moyenne d'arrêt dans cet arbre.",
+             "- **prédictions internes** : parmi les prédictions de ce type, part faite "
+             "par un nœud interne.", ""]
+            + tableau(["type", "prédits", "P (%)", "R (%)", "F1", "F1 seuil",
+                       "F1 article", "arrêts internes (arbre)", "profondeur moy.",
+                       "prédictions internes"], corps) + [""])
 
 
-def section_tracabilite(resultats):
-    """Section 3 : qui gagne, et ce que la fusion gaspille. Retourne des lignes."""
-    lignes = ["## 3. Tâche 2 — traçabilité des règles gagnantes", "",
-              "L'hypothèse posée à l'étape 4 : le cosinus place la taille de la règle au "
-              "dénominateur, donc une règle fusionnée volumineuse ne peut pas atteindre "
-              "un score élevé ; les orphelines gagneraient presque toujours et la fusion "
-              "ne ferait que rendre inaccessibles les exemples qu'elle absorbe.", ""]
-    for nom_mesure in config.MESURES_SIMILARITE:
-        corps = []
-        for resultat in par_mesure(resultats, nom_mesure):
-            trace = resultat["trace"]
-            corps.append([marque_papier(resultat["seuil"]),
-                          pct(trace["part_regles_fusionnees"], 0),
-                          f"**{pct(trace['part_victoires_fusionnees'], 0)}**",
-                          f"{fr(trace['poids_gagnant_median'], 0)} / "
-                          f"{trace['poids_gagnant_max']}",
-                          f"{fr(trace['taille_gagnante_mediane'], 0)} / "
-                          f"{trace['taille_gagnante_max']}",
-                          f"{pct(trace['taux_gagnantes_orphelines'], 0)} / "
-                          f"{pct(trace['taux_gagnantes_fusionnees'], 0)}",
-                          f"**{fr(trace['rapport_taux'], 2)}×**",
-                          trace["exemples_gaspilles_fusion"]])
-        lignes += [f"### 3.{list(config.MESURES_SIMILARITE).index(nom_mesure) + 1} "
-                   f"Mesure « {nom_mesure} »", ""]
-        lignes += tableau(["seuil", "part des règles fusionnées",
-                           "part des victoires fusionnées", "poids gagnant méd./max",
-                           "taille gagnante méd./max",
-                           "règles gagnantes : orph. / fus.", "rapport",
-                           "exemples absorbés perdus"], corps)
-        lignes += [""]
-    lignes += ["**Comment lire ces tableaux.** Avec 150 exemples de calibrage, au plus "
-               "150 règles peuvent gagner ; un compte brut de règles perdantes mesure "
-               "donc surtout la taille du jeu. Les deux colonnes qui testent vraiment "
-               "l'hypothèse sont les dernières : « règles gagnantes : orph. / fus. » "
-               "donne la part des règles orphelines qui gagnent au moins une fois et "
-               "celle des règles fusionnées, et le « rapport » divise la seconde par la "
-               "première. **Au-dessus de 1, une règle fusionnée a plus de chances de "
-               "gagner qu'une orpheline ; en dessous, la fusion produit des règles que "
-               "la mesure n'atteint pas.** C'est ce rapport, et non la part brute de "
-               "victoires, qui départage — comparer 30 % de victoires à 24 % de la "
-               "population n'aurait pas de sens sans normaliser.", ""]
-    return lignes
-
-
-def section_scores_compares(resultats):
-    """Section 3.4 : le score gagnant contre le score du bon type. Retourne des lignes."""
+def section_confusion(matrice, types):
+    """B.4 : la matrice de confusion, types numérotés. Retourne des lignes."""
+    entete = ["attendu \\ prédit"] + [str(i + 1) for i in range(len(types))]
     corps = []
-    for nom_mesure in config.MESURES_SIMILARITE:
-        for resultat in par_mesure(resultats, nom_mesure):
-            trace = resultat["trace"]
-            corps.append([nom_mesure, marque_papier(resultat["seuil"]),
-                          fr(trace["score_gagnant_moyen"]),
-                          fr(trace["score_max_bon_type"]),
-                          fr(trace["score_moyen_bon_type"]),
-                          fr(trace["score_gagnant_moyen"] - trace["score_moyen_bon_type"])])
-    return (["### 3.4 Score gagnant contre score du bon type", "",
-             "« meilleure du bon type » est le score de la meilleure règle portant le "
-             "type attendu : quand il égale le score gagnant, la prédiction est juste. "
-             "« moyenne du bon type » est la moyenne sur toutes les règles de ce type, "
-             "elle dit à quel point la bonne réponse se détache du fond.", ""]
-            + tableau(["mesure", "seuil", "score gagnant", "meilleure du bon type",
-                       "moyenne du bon type", "écart gagnant − moyenne"], corps) + [""])
+    for i, attendu in enumerate(types):
+        cellules = []
+        for predit in types:
+            valeur = matrice[attendu][predit]
+            if attendu == predit:
+                cellules.append(f"**{valeur}**")
+            else:
+                cellules.append(str(valeur) if valeur else "·")
+        corps.append([f"{i + 1}. `{attendu}`"] + cellules)
+    couples = sorted(((a, p, matrice[a][p]) for a in types for p in types
+                      if a != p and matrice[a][p]), key=lambda c: (-c[2], c[0], c[1]))
+    return (["### B.4 Matrice de confusion", "",
+             "Lignes : type attendu. Colonnes : type prédit, numérotés comme les lignes. "
+             "Aussi écrite dans `data/resultats/matrice_confusion.csv`.", ""]
+            + tableau(entete, corps)
+            + ["", "Confusions les plus fréquentes : "
+               + ", ".join(f"`{a}` → `{p}` ({n})" for a, p, n in couples[:6]) + ".", ""])
 
 
-def section_mesures(resultats):
-    """Section 4 : la comparaison des trois mesures. Retourne des lignes."""
+def section_generalisation(generalisation):
+    """B.5 : où la descente s'arrête, et si la généralisation est juste. Retourne des lignes."""
+    g = generalisation
+    feuilles, internes = g["feuilles"], g["internes"]
+    lignes = ["### B.5 Généralisation", "",
+              f"- **Arrêts internes** : {pct(g['part_interne_gagnantes'])} des "
+              f"prédictions ({g['n_internes']} sur {g['n_internes'] + g['n_feuilles']}) "
+              f"sont faites par un nœud interne ; sur l'ensemble des {g['n_descentes']} "
+              f"descentes, tous arbres confondus, {pct(g['part_interne_toutes'])} "
+              "s'arrêtent sur un nœud interne.",
+              f"- **Calculs** : {fr(g['calculs_moyens'], 1)} scores par exemple en "
+              f"moyenne, {g['calculs_max']} au plus.", "",
+              "**La généralisation est-elle juste quand elle se produit ?**", ""]
     corps = []
-    for nom_mesure in config.MESURES_SIMILARITE:
-        lot = par_mesure(resultats, nom_mesure)
-        meilleur = max(lot, key=lambda r: (r["evaluation"]["f1"], r["seuil"]))
-        corps.append([f"**{nom_mesure}**",
-                      fr(meilleur["evaluation"]["f1"]),
-                      fr(meilleur["seuil"], 2),
-                      pct(meilleur["evaluation"]["exactitude"], 0),
-                      pct(meilleur["trace"]["part_victoires_fusionnees"], 0),
-                      pct(meilleur["trace"]["part_victoires_grandes"], 0),
-                      fr(meilleur["distribution"]["mediane"])])
-    lignes = ["## 4. Tâche 3 — comparaison des trois mesures", "",
-              "Les trois mesures ne diffèrent que par la pénalité infligée à une règle "
-              "large :", "",
-              "| mesure | formule | pénalité de largeur |",
-              "|---|---|---|",
-              "| cosinus | \\|s∩r\\| / √(\\|s\\|·\\|r\\|) | racine de la taille de la règle |",
-              f"| tversky | \\|s∩r\\| / (\\|s∩r\\| + \\|s\\\\r\\| + β\\|r\\\\s\\|), "
-              f"β = {fr(config.TVERSKY_BETA, 1)} | fraction de l'excédent |",
-              "| couverture | \\|s∩r\\| / \\|s\\| | aucune |", "",
-              "Tversky est la formulation que je propose en tiers : ce n'est pas une "
-              "troisième idée mais le point intermédiaire d'une famille à un paramètre. "
-              "À β = 0 elle vaut exactement la couverture, à β = 1 l'indice de Jaccard. "
-              "Elle permet de savoir si l'écart entre les deux autres vient de la "
-              "pénalité elle-même ou de son intensité.", "",
-              "La colonne « victoires des 10 % plus grandes » mesure l'effet de bord "
-              "annoncé : une règle très large couvre n'importe quel terme.", ""]
-    lignes += tableau(["mesure", "meilleur F1 macro", "à quel seuil", "exactitude",
-                       "victoires fusionnées", "victoires des 10 % plus grandes",
-                       "score médian"], corps)
+    for nom, lot, n in (("feuille", feuilles, g["n_feuilles"]),
+                        ("nœud interne", internes, g["n_internes"])):
+        if lot is None:
+            corps.append([nom, 0, "—", "—"])
+            continue
+        corps.append([nom, n, f"{lot['corrects']} ({pct(lot['exactitude'])})",
+                      fr(lot["f1"])])
+    lignes += tableau(["prédiction faite par", "exemples", "justes (exactitude)",
+                       "F1 macro"], corps)
+    lignes += ["",
+               "Le F1 macro d'une partie est calculé sur les types qu'elle contient ; "
+               "l'exactitude, qui ne dépend pas de cette convention, est le chiffre à "
+               "comparer.", "",
+               "**Poids du nœud d'arrêt**", ""]
+    tranches = [tranche_de_poids(bas) for bas, _ in TRANCHES_POIDS]
+    lignes += tableau(["poids"] + tranches,
+                      [["prédictions"] + [g["poids_gagnants"].get(t, 0) for t in tranches],
+                       ["toutes les descentes"] + [g["poids_toutes"].get(t, 0)
+                                                   for t in tranches]])
+    profondeurs = sorted(set(g["profondeurs_toutes"]) | set(g["profondeurs_gagnantes"]))
+    lignes += ["", "**Profondeur d'arrêt** (racine = 0)", ""]
+    lignes += tableau(["profondeur"] + [str(p) for p in profondeurs],
+                      [["prédictions"] + [g["profondeurs_gagnantes"].get(p, 0)
+                                          for p in profondeurs],
+                       ["toutes les descentes"] + [g["profondeurs_toutes"].get(p, 0)
+                                                   for p in profondeurs]])
     return lignes + [""]
 
 
-def section_abstention(resultats, mesure):
-    """Section 5 : distribution des scores et effet de l'abstention. Retourne des lignes."""
-    lignes = ["## 5. Tâche 4 — abstention", "",
-              f"Mesuré sur la mesure « {mesure} ». Un terme mal décrit dans JDM produit "
-              "des similarités faibles avec toutes les règles et sa prédiction est "
-              "arbitraire ; l'abstention consiste à ne pas répondre en deçà d'un score.",
-              "", "### 5.1 Distribution des scores gagnants", ""]
+def section_branches(diagnostics, croisement):
+    """B.6 : où la descente se trompe de branche. Retourne des lignes."""
+    toutes = resume_diagnostics(diagnostics["toutes"])
+    attendues = resume_diagnostics(diagnostics["attendues"])
     corps = []
-    for resultat in par_mesure(resultats, mesure):
-        distribution = resultat["distribution"]
-        corps.append([marque_papier(resultat["seuil"]), fr(distribution["min"]),
-                      fr(distribution["c10"]), fr(distribution["mediane"]),
-                      fr(distribution["c90"]), fr(distribution["max"])])
-    lignes += tableau(["seuil de fusion", "min", "c10", "médiane", "c90", "max"], corps)
-
-    lignes += ["", "### 5.2 Effet des seuils d'abstention", ""]
-    for resultat in par_mesure(resultats, mesure):
-        corps = []
-        for abstention in resultat["abstention"]:
-            marque = fr(abstention["seuil"], 2)
-            if abstention["seuil"] not in config.SEUILS_ABSTENTION_DEMANDES:
-                marque += " *"
-            corps.append([marque, abstention["abstentions"],
-                          pct(abstention["taux_abstention"], 1),
-                          fr(abstention["f1"]),
-                          ecart_signe(abstention["f1"]
-                                      - resultat["evaluation"]["f1"]),
-                          abstention["bonnes_perdues"]])
-        lignes += [f"**Seuil de fusion {fr(resultat['seuil'], 2)}** — F1 sans "
-                   f"abstention {fr(resultat['evaluation']['f1'])}", ""]
-        lignes += tableau(["seuil d'abstention", "abstentions", "taux", "F1 des retenus",
-                           "gain de F1", "bonnes prédictions perdues"], corps)
-        lignes += [""]
+    for nom, r in (("toutes les descentes", toutes), ("arbre du type attendu", attendues)):
+        corps.append([nom, r["total"],
+                      pct(r["natures"].get("optimale", 0) / r["total"]),
+                      r["natures"].get("arrêt prématuré", 0),
+                      r["natures"].get("mauvaise branche", 0),
+                      fr(r["perte_mediane"]), fr(r["perte_max"])])
+    lignes = ["### B.6 Erreurs de branche : la descente contre l'exhaustif", "",
+              "Pour chaque descente, on compare le nœud d'arrêt au meilleur nœud du même "
+              "arbre, trouvé par l'exhaustif.", "",
+              "- **optimale** : la descente trouve le maximum de l'arbre ;",
+              "- **arrêt prématuré** : le maximum est sous le nœud d'arrêt — aucun des "
+              "deux enfants ne faisait mieux, mais un descendant plus profond, si ;",
+              "- **mauvaise branche** : le maximum est dans l'autre sous-arbre ; le "
+              "niveau est la profondeur du dernier ancêtre commun, là où la descente a "
+              "choisi le mauvais enfant.", ""]
+    lignes += tableau(["descentes", "nombre", "optimales", "arrêts prématurés",
+                       "mauvaises branches", "perte de score méd.", "perte max"], corps)
+    lignes += ["", "**Niveau des erreurs**, dans l'arbre du type attendu :", "",
+               f"- mauvaise branche, profondeur de l'embranchement → "
+               f"{libelle_niveaux(attendues['niveaux_branche'])}",
+               f"- arrêt prématuré, profondeur de l'arrêt → "
+               f"{libelle_niveaux(attendues['niveaux_premature'])}", "",
+               "Et sur toutes les descentes :", "",
+               f"- mauvaise branche → {libelle_niveaux(toutes['niveaux_branche'])}",
+               f"- arrêt prématuré → {libelle_niveaux(toutes['niveaux_premature'])}", ""]
+    perdus = croisement["perdus_par_nature"]
+    lignes += ["**Ce que cela coûte en prédictions.** "
+               f"(b) et (c) prédisent un type différent pour {croisement['divergences']} "
+               f"exemples. L'exhaustif réussit et la descente échoue sur "
+               f"{len(croisement['perdus'])} exemples ; l'inverse arrive sur "
+               f"{len(croisement['gagnes'])}. Parmi les exemples perdus, la descente de "
+               f"l'arbre attendu était : optimale {perdus.get('optimale', 0)}, arrêtée "
+               f"trop tôt {perdus.get('arrêt prématuré', 0)}, dans la mauvaise branche "
+               f"{perdus.get('mauvaise branche', 0)}. Par construction, un exemple que "
+               "l'exhaustif réussit a son meilleur nœud absolu dans l'arbre attendu : si "
+               "la descente de cet arbre le trouvait, elle gagnerait aussi. Toute perte "
+               "est donc une descente sous-optimale dans l'arbre attendu, sauf égalité "
+               "exacte de scores.", ""]
     return lignes
 
 
-def section_recommandation(resultats, retenu, final):
-    """Section 6 : verdict, seuil recommandé, modèle final. Retourne des lignes."""
-    cosinus = par_mesure(resultats, "cosinus")
-    papier = trouver(resultats, "cosinus", config.GRASP_SEUIL_PAPIER)
-    plus_bas = min(cosinus, key=lambda r: r["seuil"])
-    plus_haut = max(cosinus, key=lambda r: r["seuil"])
-    trace_bas = plus_bas["trace"]
-
-    lignes = ["## 6. Tâche 5 — verdict et recommandation", "",
-              "### 6.1 Verdict sur l'hypothèse des règles gagnantes", "",
-              "L'hypothèse formulée à l'étape 4 était la suivante : le cosinus place la "
-              "taille de la règle au dénominateur, donc une règle fusionnée volumineuse "
-              "ne peut pas atteindre un score élevé ; les orphelines gagneraient presque "
-              "toujours et la fusion ne ferait que rendre inaccessibles les exemples "
-              "qu'elle absorbe.", "",
-              "**Elle est réfutée.** Non pas sur la prémisse, qui est exacte, mais sur "
-              "la conclusion.", ""]
-
-    corps = []
-    for resultat in cosinus:
-        trace = resultat["trace"]
-        corps.append([marque_papier(resultat["seuil"]),
-                      f"{trace['n_orphelines']} / {trace['n_fusionnees']}",
-                      pct(trace["taux_gagnantes_orphelines"], 0),
-                      pct(trace["taux_gagnantes_fusionnees"], 0),
-                      f"**{fr(trace['rapport_taux'], 2)}×**"])
-    lignes += tableau(["seuil", "règles orph. / fus.",
-                       "part des orphelines qui gagnent",
-                       "part des fusionnées qui gagnent", "rapport"], corps)
-
-    rapports = [r["trace"]["rapport_taux"] for r in cosinus
-                if r["trace"]["n_fusionnees"]]
-    lignes += ["",
-               f"Sous le cosinus, une règle fusionnée gagne **plus** souvent qu'une "
-               f"orpheline, à tous les seuils : le rapport va de "
-               f"{fr(min(rapports), 2)} à {fr(max(rapports), 2)}. Au seuil "
-               f"{fr(plus_bas['seuil'], 2)}, les règles fusionnées sont "
-               f"{pct(trace_bas['part_regles_fusionnees'], 0)} de la population et "
-               f"remportent {pct(trace_bas['part_victoires_fusionnees'], 0)} des "
-               "prédictions. La part brute de victoires orphelines, spectaculaire, ne "
-               "disait rien d'autre que le fait qu'il y a beaucoup plus d'orphelines.",
-               "",
-               "La raison pour laquelle la prémisse n'entraîne pas la conclusion : "
-               "fusionner agrandit le dénominateur, mais la signature élargie recoupe "
-               "aussi davantage de termes, donc le numérateur grandit lui aussi. Le "
-               "cosinus ne neutralise pas la fusion, il la tempère — et la tempérer "
-               "suffisait, puisque c'est la mesure sans pénalité qui s'effondre.", "",
-               "**Ce que le balayage montre à la place** : le seuil de fusion ne change "
-               f"presque rien au F1. De {fr(plus_bas['seuil'], 2)} à "
-               f"{fr(plus_haut['seuil'], 2)}, il va de "
-               f"{fr(plus_bas['evaluation']['f1'])} à "
-               f"{fr(plus_haut['evaluation']['f1'])}, soit "
-               f"{plus_bas['evaluation']['corrects'] - plus_haut['evaluation']['corrects']} "
-               "exemples d'écart sur 150. La fusion aide un peu, régulièrement, sans "
-               "jamais être décisive. L'étape 4 s'inquiétait d'un emballement ; "
-               "l'emballement existe bien dans les signatures, mais il ne se traduit ni "
-               "par un gain ni par une catastrophe à la classification.", "",
-               "### 6.2 Ce que la comparaison des mesures établit", ""]
-
-    meilleur_par_mesure = {}
-    for nom in config.MESURES_SIMILARITE:
-        lot = par_mesure(resultats, nom)
-        meilleur_par_mesure[nom] = max(lot, key=lambda r: (r["evaluation"]["f1"],
-                                                           r["seuil"]))
-    couverture = meilleur_par_mesure["couverture"]
-    tversky = meilleur_par_mesure["tversky"]
-    cos = meilleur_par_mesure["cosinus"]
-    lignes += [f"**Le cosinus reste la meilleure des trois** : "
-               f"{fr(cos['evaluation']['f1'])} de F1 macro contre "
-               f"{fr(tversky['evaluation']['f1'])} pour Tversky et "
-               f"{fr(couverture['evaluation']['f1'])} pour la couverture.", "",
-               "L'effet de bord annoncé pour la couverture est vérifié et il est massif :"
-               f" {pct(couverture['trace']['part_victoires_grandes'], 0)} de ses "
-               "prédictions sont remportées par les 10 % de règles les plus grandes, et "
-               f"seulement {couverture['trace']['regles_distinctes_gagnantes']} règles "
-               f"distinctes gagnent quoi que ce soit sur "
-               f"{couverture['trace']['regles']}. Une poignée de règles énormes couvre "
-               "tout le monde. Ses scores sont aussi bien plus hauts "
-               f"(médiane {fr(couverture['distribution']['mediane'])} contre "
-               f"{fr(cos['distribution']['mediane'])}) sans être plus justes : la "
-               "couverture est confiante et fausse.", "",
-               f"Tversky à β = {fr(config.TVERSKY_BETA, 1)} se place exactement où on "
-               f"l'attendait, entre les deux — "
-               f"{pct(tversky['trace']['part_victoires_grandes'], 0)} de victoires pour "
-               "les plus grandes règles, contre "
-               f"{pct(cos['trace']['part_victoires_grandes'], 0)} au cosinus et "
-               f"{pct(couverture['trace']['part_victoires_grandes'], 0)} à la "
-               "couverture. Comme le F1 décroît de façon monotone du cosinus vers la "
-               "couverture, **la pénalité de largeur n'est pas un défaut à corriger : "
-               "plus on la retire, plus on classe mal.** C'est le résultat que la "
-               "famille à un paramètre permettait d'établir, et qui n'aurait pas été "
-               "lisible avec deux mesures seulement.", "",
-               "### 6.3 Abstention", ""]
-
-    seuils_demandes = config.SEUILS_ABSTENTION_DEMANDES
-    retenu_abst = [a for a in retenu["abstention"] if a["seuil"] in seuils_demandes]
-    maximum = max(retenu["abstention"], key=lambda a: a["f1"])
-    lignes += [f"Le score gagnant le plus faible du calibrage est "
-               f"{fr(retenu['distribution']['min'])}. **Les quatre seuils demandés — "
-               + ", ".join(fr(s, 2) for s in seuils_demandes) +
-               " — sont donc tous sous le plancher observé** : le plus élevé ne fait "
-               f"abstenir que {retenu_abst[-1]['abstentions']} exemple sur 150. Il n'y a "
-               "rien à trancher dans cette plage, et c'est en soi un résultat : sur ce "
-               "corpus, aucun terme n'est assez mal décrit dans JDM pour produire un "
-               "score quasi nul.", "",
-               "J'ai prolongé le balayage jusqu'à "
-               f"{fr(max(config.SEUILS_ABSTENTION), 2)} pour que la courbe soit "
-               f"lisible. Le meilleur F1 des retenus, {fr(maximum['f1'])}, est atteint à "
-               f"{fr(maximum['seuil'], 2)} pour "
-               f"{pct(maximum['taux_abstention'], 0)} d'abstention et "
-               f"{maximum['bonnes_perdues']} bonnes prédictions perdues. Le gain sur le "
-               f"F1 est de {ecart_signe(maximum['f1'] - retenu['evaluation']['f1'])} : "
-               "l'abstention ne sauve pas ce classifieur. Je ne fixe pas de seuil.", "",
-               "### 6.4 Seuil de fusion recommandé", "",
-               f"**{fr(retenu['seuil'], 2)}**, avec le cosinus. F1 macro "
-               f"{fr(retenu['evaluation']['f1'])} sur le calibrage, "
-               f"{retenu['evaluation']['corrects']}/{retenu['evaluation']['total']} "
-               f"exemples justes, contre {pct(1 / 15)} attendus au hasard.", ""]
-    corps = []
-    for resultat in cosinus:
-        corps.append([marque_papier(resultat["seuil"]),
-                      fr(resultat["evaluation"]["f1"]),
-                      f"{resultat['evaluation']['corrects']}/150",
-                      resultat["trace"]["regles"],
-                      pct(resultat["trace"]["part_victoires_fusionnees"], 0)])
-    lignes += tableau(["seuil", "F1 macro", "corrects", "règles",
-                       "victoires fusionnées"], corps)
-    ecart_papier = retenu["evaluation"]["f1"] - papier["evaluation"]["f1"]
-    lignes += ["",
-               "La franchise s'impose sur ce choix : l'écart entre "
-               f"{fr(retenu['seuil'], 2)} et les deux seuils suivants vaut "
-               f"{fr(retenu['evaluation']['f1'] - trouver(resultats, 'cosinus', 0.45)['evaluation']['f1'])} "
-               "de F1, soit trois exemples sur 150. **Ce n'est pas significatif à cette "
-               f"taille de jeu.** Ce qui départage vraiment {fr(retenu['seuil'], 2)}, "
-               f"c'est la compacité : {retenu['trace']['regles']} règles contre "
-               f"{papier['trace']['regles']} au seuil du papier, pour un F1 supérieur de "
-               f"{fr(ecart_papier)}. À performance équivalente, le modèle le plus petit "
-               "est préférable, et c'est le seul argument que les chiffres autorisent.",
-               "",
-               f"Le seuil {fr(config.GRASP_SEUIL_PAPIER, 2)} de l'article donne "
-               f"{fr(papier['evaluation']['f1'])}, soit "
-               f"{fr(abs(ecart_papier))} de moins. Il reste dans le rapport comme point "
-               "de comparaison, mais il n'est pas le meilleur choix sur ce corpus.", "",
-               "### 6.5 Modèle final", "",
-               f"Réappris sur le train complet — "
-               f"{config.TAILLE_APPRENTISSAGE + config.TAILLE_CALIBRAGE} exemples par "
-               f"type, {15 * (config.TAILLE_APPRENTISSAGE + config.TAILLE_CALIBRAGE)} en "
-               f"tout — au seuil {fr(retenu['seuil'], 2)}, stratégie gloutonne, critère "
-               f"« les deux ». **{final['n_regles']} règles**, dont "
-               f"{final['orphelines']} orphelines "
-               f"({pct(final['part_orphelines'], 0)}), écrites dans "
-               f"`{config.FICHIER_MODELE_FINAL.relative_to(config.RACINE).as_posix()}`.",
-               "",
-               "Il n'est pas classé contre le test : c'est l'étape 6. Le calibrage a "
-               "servi à choisir le seuil, il ne peut donc plus servir à estimer la "
-               "performance ; les 53 % d'exactitude ci-dessus sont une valeur de "
-               "sélection, pas une mesure de généralisation.", ""]
-    return lignes
+def section_mecanisme(choix, mesures_arbres, generalisation):
+    """B.7 : pourquoi la descente part dans la mauvaise branche. Retourne des lignes."""
+    courts = [m for m in mesures_arbres
+              if generalisation["par_arbre"][m["rt"]]["profondeur_moyenne"]
+              < PROFONDEUR_COURTE]
+    racine, partout = choix["racine"], choix["partout"]
+    n_racine = sum(racine.values())
+    decisions = sum(v for k, v in partout.items() if k != "arrêt")
+    tailles = [(m["racine_sL"] + m["racine_sR"]) / 2 for m in mesures_arbres]
+    avec_isolat = sum(1 for m in mesures_arbres if m["isolats"])
+    return (["### B.7 Le mécanisme : le cosinus tire la descente vers l'enfant léger", "",
+            "Le cosinus divise par la racine de la taille de la signature du nœud. "
+            "Plus un nœud couvre d'exemples, plus sa signature est grande et plus son "
+            "score baisse, **quel que soit son contenu**. À chaque embranchement, "
+            "l'enfant le plus léger part donc avantagé.", ""]
+            + tableau(["embranchement", "vers l'enfant léger", "vers l'enfant lourd",
+                       "enfants de même poids", "arrêt"],
+                      [["racine", f"**{racine.get('léger', 0)}** "
+                                  f"({pct(racine.get('léger', 0) / n_racine, 0)})",
+                        racine.get("lourd", 0), racine.get("égal", 0),
+                        racine.get("arrêt", 0)],
+                       ["tous niveaux", f"{partout.get('léger', 0)} "
+                                        f"({pct(partout.get('léger', 0) / decisions, 0)} "
+                                        "des descentes effectives)",
+                        partout.get("lourd", 0), partout.get("égal", 0),
+                        partout.get("arrêt", 0)]])
+            + ["",
+               f"Les signatures des racines comptent en moyenne "
+               f"{fr(statistics.fmean(tailles), 0)} symboles par côté, contre une "
+               "cinquantaine pour un exemple. Or dans "
+               f"{avec_isolat} arbres sur {len(mesures_arbres)}, l'enfant léger de la "
+               "racine est un **isolat** (partie A.4) : un à trois exemples que le "
+               "type n'a rapprochés de personne. La descente y entre dès le premier pas "
+               "et s'y arrête, sur l'exemple le **moins** représentatif du type.", "",
+               f"Les arbres où la descente s'arrête en moyenne avant la profondeur "
+               f"{fr(PROFONDEUR_COURTE, 1)} sont "
+               + ", ".join(f"`{m['rt']}`" + (" (isolat)" if m["isolats"] else "")
+                           for m in courts)
+               + f" : {sum(1 for m in courts if m['isolats'])} sur {len(courts)} ont un "
+               "isolat à la racine. Leurs F1 en B.3 sont parmi les plus bas.", "",
+               "L'exhaustif ne souffre pas de ce biais de la même façon : il compare "
+               "tous les nœuds entre eux et trouve la feuille qui colle, là où la "
+               "descente ne compare que deux frères de tailles très différentes. C'est "
+               "aussi pourquoi (b) ne fait pas mieux que (a) : les nœuds internes, plus "
+               "gros, ne battent presque jamais la meilleure feuille.", ""])
 
 
-def section_sorties(resultats, chemin_final):
-    """Section 7 : les fichiers écrits. Retourne des lignes."""
-    return (["## 7. Sorties écrites", "",
-             f"- **{len(resultats)} fichiers de prédictions** dans "
-             f"`{config.DOSSIER_RESULTATS.relative_to(config.RACINE).as_posix()}/`, un "
-             "par couple mesure × seuil, nommés `calibrage_<mesure>_<seuil>.json`. "
-             "Chacun porte, pour ses 150 exemples, le type attendu, le type prédit, le "
-             "score, et la règle gagnante avec son poids, la taille de ses deux "
-             "signatures et les exemples qu'elle couvre.",
-             f"- **Le modèle final** dans "
-             f"`{chemin_final.relative_to(config.RACINE).as_posix()}`.",
-             "- Aucune matrice de similarité n'est stockée : les scores sont calculés à "
-             "la volée et seuls les gagnants sont conservés.", ""])
+def section_sorties():
+    """B.8 : les fichiers écrits. Retourne des lignes."""
+    return ["### B.8 Sorties écrites", "",
+            f"- `{CHEMIN_PREDICTIONS.relative_to(config.RACINE).as_posix()}` : pour "
+            "chaque exemple, le chemin complet de la descente dans l'arbre gagnant (score "
+            "de chaque nœud visité et de ses deux enfants), le nœud d'arrêt, la réponse "
+            "des quinze arbres, et les prédictions des deux références.",
+            f"- `{CHEMIN_MATRICE.relative_to(config.RACINE).as_posix()}` : la matrice de "
+            "confusion de la descente.", ""]
 
 
-def construire_rapport(resultats, retenu, final, chemin_final, exemples, types):
-    """Assemble reports/rapport_classification.md. Ne retourne rien."""
-    chemin = config.DOSSIER_RAPPORTS / "rapport_classification.md"
-    lignes = ["# Classification et choix du seuil de fusion", "",
-              "Étape 5 : la formule 3 de l'article appliquée aux règles apprises à "
-              "l'étape 4, trois mesures de similarité comparées, et le seuil de fusion "
-              "arrêté sur le jeu de calibrage. **Le split test n'est ni lu ni ouvert.** "
-              "Aucune des trois expériences de l'article n'est menée ici.", ""]
-    lignes += section_dispositif(exemples, types, resultats)
-    lignes += section_classification(resultats)
-    lignes += section_par_type(resultats, retenu["mesure"], retenu["seuil"])
-    lignes += section_tracabilite(resultats)
-    lignes += section_scores_compares(resultats)
-    lignes += section_mesures(resultats)
-    lignes += section_abstention(resultats, retenu["mesure"])
-    lignes += section_recommandation(resultats, retenu, final)
-    lignes += section_sorties(resultats, chemin_final)
-    chemin.parent.mkdir(parents=True, exist_ok=True)
-    chemin.write_text("\n".join(lignes) + "\n", encoding="utf-8")
-    print(f"Rapport écrit : {chemin}", flush=True)
-
-
-# ---------------------------------------------------------------------------
-# Modèle final
-# ---------------------------------------------------------------------------
-
-def reapprendre_sur_train(signatures, seuil):
-    """Réapprend sur les 50 exemples de train de chaque type. Retourne (règles, résumé)."""
-    lignes_train = grasp.charger_lignes_train()
-    regles_par_type, mesures = {}, []
-    for relation in sorted(lignes_train):
-        depart = grasp.regles_initiales(lignes_train[relation], signatures)
-        apres, journal = grasp.apprendre(depart, "glouton", seuil)
-        regles_par_type[relation] = apres
-        mesures.append(grasp.instrumenter(relation, depart, apres, journal))
-    resume = grasp.agreger(mesures)
-    resume["orphelines"] = sum(m["orphelines"] for m in mesures)
-    resume["n_regles"] = resume["apres"]
-    resume["part_orphelines"] = resume["orphelines"] / resume["apres"]
-    return regles_par_type, resume
+def construire_rapport(contexte):
+    """Écrit la partie B du rapport commun. Ne retourne rien."""
+    lignes = section_dispositif(contexte["lignes"], contexte["noeuds"], contexte["racines"])
+    lignes += section_references(contexte["resultats"])
+    lignes += section_par_type(contexte["evaluation"], contexte["generalisation"],
+                               contexte["internes_par_type"])
+    lignes += section_confusion(contexte["matrice"], contexte["types"])
+    lignes += section_generalisation(contexte["generalisation"])
+    lignes += section_branches(contexte["diagnostics"], contexte["croisement"])
+    lignes += section_mecanisme(contexte["choix"], contexte["mesures_arbres"],
+                                contexte["generalisation"])
+    lignes += section_sorties()
+    grasp.ecrire_partie_rapport("B", lignes)
 
 
 # ---------------------------------------------------------------------------
 # Enchaînement
 # ---------------------------------------------------------------------------
 
+def mesures_des_arbres(noeuds, racines):
+    """Les mesures de phase A, recalculées sur les arbres lus. Retourne une liste."""
+    return [grasp.mesurer_arbre(noeuds, rt, racines[rt], {"liens_calcules": 0})
+            for rt in sorted(racines)]
+
+
+def resultat_methode(predictions, duree, types):
+    """Évalue une méthode et note son coût. Retourne un dict."""
+    return {"predictions": predictions, "duree": duree,
+            "evaluation": evaluer(predictions, types),
+            "calculs": statistics.fmean(p["calculs"] for p in predictions)}
+
+
 def main():
-    if not modeles_disponibles():
-        print("Aucun modèle de balayage dans "
-              f"{config.DOSSIER_MODELES.relative_to(config.RACINE).as_posix()}/ : "
-              "lancez d'abord `python3 src/grasp.py`, qui les produit.", file=sys.stderr)
-        return
+    signatures = grasp.charger_signatures()
+    noeuds, racines = grasp.charger_arbres()
+    lignes_par_type = grasp.charger_lignes("test")
+    lignes = [l for rt in sorted(lignes_par_type) for l in lignes_par_type[rt]]
+    types = sorted(lignes_par_type)
+    print(f"Arbres : {len(noeuds)} nœuds, {len(racines)} racines. Test : {len(lignes)} "
+          "exemples.", flush=True)
 
-    signatures = charger_signatures()
-    exemples = charger_calibrage()
-    types = sorted({exemple["rt"] for exemple in exemples})
-    print(f"Signatures : {len(signatures)}. Calibrage : {len(exemples)} exemples sur "
-          f"{len(types)} types. Test non touché.", flush=True)
+    feuilles = [noeuds[i] for i in sorted(noeuds) if grasp.est_feuille(noeuds[i])]
+    tous = [noeuds[i] for i in sorted(noeuds)]
+    pred_a, duree_a, _ = lancer_exhaustif(lignes, signatures, noeuds, feuilles)
+    pred_b, duree_b, scores_b = lancer_exhaustif(lignes, signatures, noeuds, tous)
+    pred_c, duree_c = lancer_descente(lignes, signatures, noeuds, racines)
+    resultats = {"a": resultat_methode(pred_a, duree_a, types),
+                 "b": resultat_methode(pred_b, duree_b, types),
+                 "c": resultat_methode(pred_c, duree_c, types)}
+    for cle, nom in (("a", "feuilles"), ("b", "tous les nœuds"), ("c", "descente")):
+        r = resultats[cle]
+        print(f"  ({cle}) {nom:15s} F1 macro {fr(r['evaluation']['f1'])}, "
+              f"{pct(part_interne(r['predictions']))} internes, "
+              f"{fr(r['calculs'], 1)} calculs/exemple, {fr(r['duree'], 2)} s", flush=True)
 
-    resultats = lancer_balayage(exemples, signatures, types)
-
-    retenu = meilleur_resultat(resultats)
-    print(f"Retenu : « {retenu['mesure']} » au seuil {fr(retenu['seuil'], 2)}, "
-          f"F1 macro {fr(retenu['evaluation']['f1'])}.", flush=True)
-
-    regles_finales, resume = reapprendre_sur_train(signatures, retenu["seuil"])
-    resume["f1_calibrage"] = retenu["evaluation"]["f1"]
-    chemin_final = ecrire_modele_final(regles_finales, retenu["seuil"],
-                                       retenu["mesure"], resume)
-    print(f"Modèle final : {resume['n_regles']} règles sur le train complet "
-          f"-> {chemin_final}", flush=True)
-
-    construire_rapport(resultats, retenu, resume, chemin_final, exemples, types)
+    evaluation = resultats["c"]["evaluation"]
+    matrice = matrice_confusion(pred_c, types)
+    diagnostics = diagnostics_de_branche(pred_c, scores_b, noeuds)
+    ecrire_matrice(matrice, types)
+    ecrire_predictions(pred_c, evaluation, (pred_a, pred_b))
+    construire_rapport({
+        "lignes": lignes, "noeuds": noeuds, "racines": racines, "types": types,
+        "resultats": resultats, "evaluation": evaluation, "matrice": matrice,
+        "generalisation": stats_generalisation(pred_c),
+        "internes_par_type": interne_par_type_predit(pred_c),
+        "diagnostics": diagnostics,
+        "croisement": croiser_references(pred_c, pred_b, diagnostics),
+        "choix": choix_aux_embranchements(scores_b, noeuds, racines),
+        "mesures_arbres": mesures_des_arbres(noeuds, racines),
+    })
 
 
 if __name__ == "__main__":

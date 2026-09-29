@@ -81,15 +81,6 @@ TAILLE_TRAIN = 50
 SEUIL_REPETITION = 3
 
 # ---------------------------------------------------------------------------
-# Tirages aléatoires
-# ---------------------------------------------------------------------------
-
-# Graine de tous les tirages du projet : découpe du calibrage, échantillons des
-# rapports. Chaque tirage en dérive une sous-graine par type de relation, pour
-# qu'ajouter un type ne change pas la découpe des autres.
-GRAINE_ALEATOIRE = 42
-
-# ---------------------------------------------------------------------------
 # Signatures (src/signatures.py)
 # ---------------------------------------------------------------------------
 
@@ -153,66 +144,139 @@ SEUIL_SIGNATURE_QUASI_VIDE = 3
 NB_SYMBOLES_FREQUENTS = 30
 
 # ---------------------------------------------------------------------------
-# Apprentissage par fusion (src/grasp.py)
+# Configuration retenue : SOMME · ARBRE · DESCENTE
 # ---------------------------------------------------------------------------
+#
+# Choisie en validation croisée (reports/rapport_grille.md), sur l'entraînement seul.
+# C'est la SEULE configuration par défaut du projet : toute fonction qui a un choix à
+# faire lit ces trois constantes. Les autres options restent disponibles en paramètre
+# explicite, pour rejouer la grille ou les méthodes écartées.
+
+# Représentation d'un nœud fusionné : « somme » (vecteur des comptes symbole -> nombre
+# d'exemples couverts qui le portent, donc un profil moyen) ou « union » (ensemble).
+REPRESENTATION = "somme"
+
+# Structure : « arbre », fusion jusqu'à la racine, aucun seuil de coupe.
+STRUCTURE = "arbre"
+
+# Classification : « descente » depuis la racine de chacun des 15 arbres, vers le
+# meilleur enfant tant qu'il fait STRICTEMENT mieux que le nœud courant.
+CLASSIFICATION = "descente"
+
+# Lien de construction : minimum des deux côtés. Score de classification : formule 3 de
+# l'article, moyenne des deux côtés. L'asymétrie est voulue.
+
+# ---------------------------------------------------------------------------
+# Apprentissage par clustering hiérarchique (src/grasp.py)
+# ---------------------------------------------------------------------------
+#
+# Aucun seuil de fusion : chaque type est fusionné jusqu'à sa racine. Les arbres sont
+# appris sur les 50 exemples d'entraînement de chaque type ; il n'y a plus de
+# calibrage, puisqu'il n'y a plus rien à choisir.
 
 DOSSIER_MODELES = DOSSIER_DONNEES / "modeles"
 
-# Découpe du split train en apprentissage et calibrage, par type de relation. Le split
-# test (30 lignes par type) n'est pas touché et ne doit pas l'être avant l'évaluation.
-FICHIER_SPLIT_CALIBRAGE = DOSSIER_CORPUS_PROPRE / "split_calibrage.csv"
-TAILLE_APPRENTISSAGE = 40
-TAILLE_CALIBRAGE = 10
+# Les quinze arbres du clustering hiérarchique, tous nœuds compris (src/grasp.py). Le
+# nom porte la représentation : changer REPRESENTATION n'écrase pas les arbres d'une
+# autre (arbres.json, sans suffixe, est l'ancienne version en union).
+FICHIER_ARBRES = DOSSIER_MODELES / f"arbres_{REPRESENTATION}.json"
 
-# Les deux ordonnancements de fusion. Le papier ne tranche pas, et l'ordre change le
-# résultat : fusionner A+B puis C ne donne pas la même règle que B+C puis A.
-GRASP_STRATEGIES = ("glouton", "sequentiel")
-
-# Seuils balayés. 0,50 est celui du papier : il figure dans tous les tableaux, même
-# lorsqu'il ne fusionne presque rien, pour servir de point de comparaison.
-GRASP_SEUILS = (0.30, 0.35, 0.40, 0.45, 0.50, 0.55)
-GRASP_SEUIL_PAPIER = 0.50
-
-# Détection d'emballement. Une règle qui couvre plus de la moitié des exemples de son
-# type, ou dont la signature dépasse ce multiple de la taille initiale médiane, a
-# absorbé trop de choses et ne discrimine plus rien.
-EMBALLEMENT_PART_EXEMPLES = 0.5
-EMBALLEMENT_FACTEUR_TAILLE = 3
+# Rapport commun à grasp.py, classify.py et evaluate.py, une partie chacun. Même
+# principe : rapport_arbres.md, sans suffixe, documente la version en union.
+FICHIER_RAPPORT_ARBRES = DOSSIER_RAPPORTS / f"rapport_arbres_{REPRESENTATION}.md"
 
 # ---------------------------------------------------------------------------
-# Classification (src/classify.py)
+# Classification par descente (src/classify.py)
 # ---------------------------------------------------------------------------
 
 DOSSIER_RESULTATS = DOSSIER_DONNEES / "resultats"
-FICHIER_MODELE_FINAL = DOSSIER_MODELES / "modele_final.json"
 
-# Les trois mesures de similarité comparées. Elles ne diffèrent que par la pénalité
-# qu'elles infligent à une règle large : le cosinus divise par la racine de sa taille,
-# Tversky par une fraction de ce qu'elle contient en trop, la couverture par rien.
-# C'est exactement la question posée par la fusion, qui produit des règles larges.
-MESURES_SIMILARITE = ("cosinus", "tversky", "couverture")
-
-# Poids de l'excédent de la règle dans l'indice de Tversky. À 0 on retrouve la
-# couverture, à 0,5 l'indice de Dice, à 1 celui de Jaccard.
-TVERSKY_BETA = 0.2
-
-# Seuils d'abstention balayés : en deçà, le score gagnant est jugé trop faible pour
-# que la prédiction veuille dire quelque chose.
-# Les quatre premiers sont ceux de l'énoncé ; ils se sont révélés tous inférieurs au
-# plus faible score observé, donc sans effet. Le balayage est prolongé jusqu'à la
-# médiane pour que la courbe soit lisible, sans que cela tranche quoi que ce soit.
-SEUILS_ABSTENTION_DEMANDES = (0.05, 0.10, 0.15, 0.20)
-SEUILS_ABSTENTION = (0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40)
-
-# Part des règles considérées comme « les plus grandes » quand on mesure si la
-# couverture se fait capturer par elles.
-PART_GRANDES_REGLES = 0.10
+# Évaluation finale de la configuration retenue (src/evaluation_finale.py). Fichiers à
+# part : test_predictions.json et matrice_confusion.csv sont ceux de la version en union.
+FICHIER_PREDICTIONS_FINALES = DOSSIER_RESULTATS / "predictions_finales.json"
+FICHIER_MATRICE_FINALE = DOSSIER_RESULTATS / "matrice_confusion_finale.csv"
+FICHIER_RAPPORT_FINAL = DOSSIER_RAPPORTS / "rapport_final.md"
 
 # ---------------------------------------------------------------------------
-# Évaluation (src/evaluate.py) — paramètres FIGÉS à l'étape 5
+# Grille d'options en validation croisée (src/grille.py)
 # ---------------------------------------------------------------------------
 
-# Mesure de similarité retenue pour la classification. Arrêtée sur le calibrage : le
-# cosinus bat Tversky et la couverture, et l'écart croît quand on retire la pénalité de
-# largeur. Ne plus toucher : le split test est ouvert.
-MESURE_FIGEE = "cosinus"
+# Validation croisée sur les 750 exemples d'entraînement : 5 plis stratifiés par type,
+# 10 exemples par type et par pli. Le test n'est pas lu.
+GRILLE_PLIS = 5
+GRAINE_ALEATOIRE = 42
+
+# Seuils de coupe des arbres en forêt, balayés séparément pour chaque représentation :
+# le cosinus sur comptes n'a pas la même échelle que sur ensembles.
+GRILLE_SEUILS = tuple(round(0.30 + 0.05 * k, 2) for k in range(9))
+
+FICHIER_RAPPORT_GRILLE = DOSSIER_RAPPORTS / "rapport_grille.md"
+FICHIER_COURBES_GRILLE = DOSSIER_RAPPORTS / "rapport_grille_courbes.svg"
+
+# ---------------------------------------------------------------------------
+# Variantes de signatures en validation croisée (src/variantes_signatures.py)
+# ---------------------------------------------------------------------------
+#
+# La méthode reste figée (somme · arbre · descente). Ce qui varie : la construction des
+# signatures. Tout est calculé en mémoire depuis data/collecte/ ; data/signatures/ n'est
+# pas touché et le test n'est pas lu. Statistiques documentaires et centiles ne sont
+# calculés que sur les termes d'entraînement du pli.
+
+# Répétitions de la validation croisée : une graine par répétition, 5 plis chacune.
+GRAINES_VARIANTES = (42, 43, 44)
+
+# Nombre d'hyperonymes gardés ; « tous » = tous ceux de poids > 0 après fusion des
+# doublons de casse. Rangés du plus simple au plus complexe.
+VARIANTES_H = (H_TOP, 50, 100, 200, "tous")
+
+# Pondérations des symboles, de la plus simple à la plus complexe.
+#   binaire : poids 1.  idf : log(N / df) sur les termes d'entraînement du pli.
+#   jdm : poids de la collecte, normalisés par terme et par trait.  jdm×idf : produit.
+VARIANTES_PONDERATIONS = ("binaire", "idf", "jdm", "jdm×idf")
+
+# Traitement du symbole du terme lui-même : T2 absent, T0 sans préfixe (actuel), T1 sous
+# la forme H:<terme>. Rangés du plus simple au plus complexe.
+VARIANTES_TERME = ("T2", "T0", "T1")
+
+# Sélection TRT et SST, du réglage actuel aux plus retouchés.
+#   sans_frequents : retrait des types présents chez plus de SEUIL_TRT_FREQUENT des
+#   termes d'entraînement.  centile : politique P8@C66, centile TRT_CENTILE.
+VARIANTES_TRT = ("tous", "aucun", "sans_frequents", "centile")
+VARIANTES_SST = ("toutes", "aucune", "sans_morpho")
+SEUIL_TRT_FREQUENT = 0.80
+
+# Fréquence documentaire minimale d'un symbole d'entraînement : 1 = aucun seuil.
+VARIANTES_DF_MIN = (1, 2)
+
+# Exemples de validation par pli : 10 par type, 15 types.
+TAILLE_PLI_VALIDATION = 150
+
+# Réglages actuels du projet, pris comme référence de toute la phase.
+REFERENCE_VARIANTES = {"h": H_TOP, "pond": "binaire", "terme": "T0", "trt": "tous",
+                       "sst": "toutes", "df_min": 1}
+
+# F1 de la même référence dans rapport_grille.md (une répétition, graine 42), pour
+# vérifier que la nouvelle chaîne la retrouve à l'identique.
+F1_REFERENCE_GRILLE = 0.784
+
+# Nombre de processus de calcul ; None = nombre de cœurs, plafonné.
+PROCESSUS_VARIANTES = None
+PROCESSUS_MAXIMUM = 6
+
+DOSSIER_SIGNATURES_VARIANTES = DOSSIER_DONNEES / "signatures_variantes"
+FICHIER_MESURES_VARIANTES = DOSSIER_SIGNATURES_VARIANTES / "mesures_cv.json"
+FICHIER_RAPPORT_VARIANTES = DOSSIER_RAPPORTS / "rapport_signatures_variantes.md"
+
+# ---------------------------------------------------------------------------
+# Signatures retenues par la validation croisée (src/evaluation_signatures.py)
+# ---------------------------------------------------------------------------
+#
+# Choisies dans reports/rapport_signatures_variantes.md. `predire.py` et
+# data/signatures/ utilisent toujours les réglages actuels (REFERENCE_VARIANTES) : ces
+# signatures-là n'existent que dans l'évaluation finale, en mémoire.
+SIGNATURES_RETENUES = {"h": 20, "pond": "jdm", "terme": "T2", "trt": "tous",
+                       "sst": "toutes", "df_min": 1}
+
+FICHIER_PREDICTIONS_SIGNATURES = DOSSIER_RESULTATS / "predictions_finales_jdm.json"
+FICHIER_MATRICE_SIGNATURES = DOSSIER_RESULTATS / "matrice_confusion_finale_jdm.csv"
+FICHIER_RAPPORT_SIGNATURES = DOSSIER_RAPPORTS / "rapport_final_signatures.md"
