@@ -17,7 +17,7 @@ descente part systématiquement vers le plus petit enfant.
 > `rapport_signatures_variantes.md`.
 
 > Les chiffres des exemples ci-dessous sont simplifiés pour se suivre à
-> la main. Les chiffres réels sont dans `rapport_arbres.md` et
+> la main. Les chiffres réels sont dans `archive/rapport_arbres.md` et
 > `rapport_grille.md`. La méthode retenue est expliquée dans
 > `methode_somme_arbre_descente.md`.
 

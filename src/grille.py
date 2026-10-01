@@ -572,7 +572,7 @@ def section_lecture(agregat, rangees):
             "symbole porté par tous, et la racine est pénalisée pour chacun d'eux. En "
             "somme, la norme du nœud est dominée par les symboles que partagent beaucoup "
             "d'exemples : ce qui est typique du type compte, l'accidentel s'efface. C'est "
-            "le biais de rapport_arbres.md vu de l'autre côté — le gros nœud y perdait, "
+            "le biais de archive/rapport_arbres.md vu de l'autre côté — le gros nœud y perdait, "
             "il devient ici le meilleur candidat.",
             f"- La meilleure configuration en union est **{libelle(meilleure_union['cle'])}**, "
             f"F1 {f1_avec_ecart(meilleure_union)}, rang "

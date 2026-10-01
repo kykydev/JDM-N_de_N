@@ -137,7 +137,7 @@ Une prédiction est comptée dans le type qu'elle **propose**. « justes » : pa
 
 ## 5. Analyse des cas d'échec
 
-110 erreurs sur 450 exemples (méthode à seuil : 180). Mêmes détecteurs que `rapport_evaluation.md` ; chaque erreur reçoit une cause unique par ordre de priorité, du plus spécifique au plus général :
+110 erreurs sur 450 exemples (méthode à seuil : 180). Mêmes détecteurs que `archive/rapport_evaluation.md` ; chaque erreur reçoit une cause unique par ordre de priorité, du plus spécifique au plus général :
 
 `défaut de connaissance` → `dispersion morphologique` → `classe multiple` → `polysémie` → `autre`
 

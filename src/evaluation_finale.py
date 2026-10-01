@@ -226,7 +226,7 @@ def descentes_profondes(predictions):
 
 
 # ---------------------------------------------------------------------------
-# Analyse des échecs (mêmes détecteurs que rapport_evaluation.md)
+# Analyse des échecs (mêmes détecteurs que archive/rapport_evaluation.md)
 # ---------------------------------------------------------------------------
 
 def indices_de_cause(collecte, signatures):
@@ -510,7 +510,7 @@ def section_echecs(echecs, exclusives, non_exclusives, total, taux_poly):
     baisse = part < SEUIL_PART_POLYSEMIE
     lignes = ["## 5. Analyse des cas d'échec", "",
               f"{n} erreurs sur {total} exemples (méthode à seuil : {SEUIL_ERREURS}). Mêmes "
-              "détecteurs que `rapport_evaluation.md` ; chaque erreur reçoit une cause "
+              "détecteurs que `archive/rapport_evaluation.md` ; chaque erreur reçoit une cause "
               "unique par ordre de priorité, du plus spécifique au plus général :", "",
               "`" + "` → `".join(PRIORITE_CAUSES) + "`", ""]
     lignes += tableau(["cause", "attribution exclusive", "part des erreurs",

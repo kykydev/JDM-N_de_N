@@ -127,9 +127,9 @@ de version allégée de la pondération à en tirer.
 
 | méthode | F1 macro | rapport |
 |---|---|---|
-| Apprentissage à seuil (fusion « les deux » à 0,50) + classification exhaustive | 0,597 (test) | [rapport_grasp.md](reports/rapport_grasp.md), [rapport_classification.md](reports/rapport_classification.md), [rapport_evaluation.md](reports/rapport_evaluation.md) |
-| Union · arbre · descente (**écartée**) | 0,219 (test), 0,224 (validation croisée) | [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md), [rapport_arbres.md](reports/rapport_arbres.md) |
-| Plus proche voisin sur les feuilles | 0,585 (test), 0,534 (validation croisée) | [rapport_arbres.md](reports/rapport_arbres.md) |
+| Apprentissage à seuil (fusion « les deux » à 0,50) + classification exhaustive | 0,597 (test) | [archive/rapport_grasp.md](reports/archive/rapport_grasp.md), [archive/rapport_classification.md](reports/archive/rapport_classification.md), [archive/rapport_evaluation.md](reports/archive/rapport_evaluation.md) |
+| Union · arbre · descente (**écartée**) | 0,219 (test), 0,224 (validation croisée) | [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md), [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
+| Plus proche voisin sur les feuilles | 0,585 (test), 0,534 (validation croisée) | [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
 | Grille de 61 configurations (représentation × structure × classification) | de 0,224 à 0,784 (validation croisée) | [rapport_grille.md](reports/rapport_grille.md) |
 | Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) |
 | Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée, 3 graines) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |

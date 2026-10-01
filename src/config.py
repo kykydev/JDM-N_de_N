@@ -181,7 +181,7 @@ DOSSIER_MODELES = DOSSIER_DONNEES / "modeles"
 # autre. Les arbres en union ont été supprimés (ils sont dans le commit 8bd078a).
 FICHIER_ARBRES = DOSSIER_MODELES / f"arbres_{REPRESENTATION}.json"
 
-# Rapport de grasp.py. Même principe : rapport_arbres.md, sans suffixe, documente la
+# Rapport de grasp.py. Même principe : archive/rapport_arbres.md, sans suffixe, documente la
 # version en union et n'est plus régénérable.
 FICHIER_RAPPORT_ARBRES = DOSSIER_RAPPORTS / f"rapport_arbres_{REPRESENTATION}.md"
 

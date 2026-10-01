@@ -11,7 +11,7 @@ Représentation × structure × classification, comparées sur l'entraînement s
 - **Classifications** : descente dans chaque arbre de la forêt ; exhaustif sur tous les nœuds de la forêt (No Trim) ; exhaustif sur ses racines, orphelines comprises (Trim). Score : formule 3, moyenne des deux côtés. Lien de construction : minimum des deux côtés.
 - **Nombre de calculs** : scores que la méthode calcule seule pour un exemple. La grille, elle, calcule chaque nœud une fois et le relit.
 - **Écart-type** : sur les 5 valeurs de F1 des plis, dénominateur n − 1.
-- Durée totale : 22 s.
+- Durée totale : 27 s.
 
 ## 2. Les configurations de référence
 
@@ -54,7 +54,7 @@ Configurations qui ne s'en distinguent pas au-delà d'un écart-type — F1 moye
 
 - **La meilleure configuration prédit surtout par des nœuds très lourds.** 50 % de ses prédictions viennent d'une racine de la forêt, et le nœud gagnant couvre en moyenne 96 % de son type.
 - **somme · arbre · exhaustif racines** compare l'exemple aux quinze seules racines, soit au centroïde de chaque type : F1 0,783 ± 0,048, pour 15 calculs. La meilleure configuration fait +0,001 par rapport à ce classifieur par centroïde. **L'essentiel du gain vient de la représentation somme, pas de l'arbre.**
-- La même comparaison aux racines en union donne 0,415 ± 0,061 : en union, un symbole porté par un seul exemple du type pèse autant qu'un symbole porté par tous, et la racine est pénalisée pour chacun d'eux. En somme, la norme du nœud est dominée par les symboles que partagent beaucoup d'exemples : ce qui est typique du type compte, l'accidentel s'efface. C'est le biais de rapport_arbres.md vu de l'autre côté — le gros nœud y perdait, il devient ici le meilleur candidat.
+- La même comparaison aux racines en union donne 0,415 ± 0,061 : en union, un symbole porté par un seul exemple du type pèse autant qu'un symbole porté par tous, et la racine est pénalisée pour chacun d'eux. En somme, la norme du nœud est dominée par les symboles que partagent beaucoup d'exemples : ce qui est typique du type compte, l'accidentel s'efface. C'est le biais de archive/rapport_arbres.md vu de l'autre côté — le gros nœud y perdait, il devient ici le meilleur candidat.
 - La meilleure configuration en union est **union · forêt 0,50 · exhaustif racines**, F1 0,555 ± 0,037, rang 25.
 
 ## 4. F1 en fonction du seuil
