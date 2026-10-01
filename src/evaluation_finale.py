@@ -24,7 +24,6 @@ import argparse
 import csv
 import json
 import statistics
-import time
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 

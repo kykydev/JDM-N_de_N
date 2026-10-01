@@ -27,7 +27,6 @@ import argparse
 import csv
 import json
 import math
-import statistics
 import time
 from datetime import datetime, timezone
 

@@ -21,7 +21,6 @@ Aucun appel réseau n'est fait à l'import. Bibliothèque standard uniquement.
 """
 
 import hashlib
-import html
 import json
 import logging
 import time
@@ -288,27 +287,3 @@ class ClientJDM:
         """Construit les tables des types de relations. Retourne (nom -> id, id -> nom)."""
         types = self.types_de_relations()
         return {t["name"]: t["id"] for t in types}, {t["id"]: t["name"] for t in types}
-
-
-def nom_raffinement_lisible(nom, id_vers_nom, client=None):
-    """Rend lisible un nom de raffinement. Retourne le nom avec ses entités HTML décodées
-    (« &#339;uvre » -> « œuvre ») et ses identifiants traduits (« chatte>150 » -> « chatte>chat »).
-
-    Un identifiant absent de `id_vers_nom` est demandé à noeud_par_id si `client` est fourni,
-    sinon laissé tel quel."""
-    nom = html.unescape(nom)
-    if ">" not in nom:
-        return nom
-    tete, *parties = nom.split(">")
-    lisible = [tete]
-    for partie in parties:
-        if partie.isdigit():
-            identifiant = int(partie)
-            if identifiant not in id_vers_nom and client is not None:
-                try:
-                    id_vers_nom[identifiant] = client.noeud_par_id(identifiant)["name"]
-                except (JDMIntrouvable, JDMErreur):
-                    pass
-            partie = html.unescape(id_vers_nom.get(identifiant, partie))
-        lisible.append(partie)
-    return ">".join(lisible)

@@ -50,7 +50,6 @@ import statistics
 import unicodedata
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from pathlib import Path
 import time
 
 import config
