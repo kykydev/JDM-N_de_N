@@ -38,6 +38,36 @@ Quand deux nœuds fusionnent, on additionne leurs vecteurs :
 fusion côté B :  bois:2  matériau:2  SUBST:2  chêne:1
 ```
 
+Avec de vrais poids (la configuration retenue), les feuilles ne valent
+plus 1 mais un poids réel, tiré de la collecte JDM et normalisé par
+terme — voir la note en tête de document. Pour « bois » (côté B de
+« cuillère de bois ») et « chêne » (côté B de « table de chêne ») :
+
+```
+poids bruts JDM (exemples, pas les vrais chiffres de la collecte) :
+  H:matériau de « bois »   = 850  (plus fort hyperonyme retenu de « bois »)   -> 850/850  = 1,00
+  SST:SUBST  de « bois »   = 900  (plus forte annotation de « bois »)        -> 900/900  = 1,00
+
+  H:bois     de « chêne »  = 760  (plus fort hyperonyme retenu de « chêne ») -> 760/760  = 1,00
+  H:matériau de « chêne »  = 540  (hyperonyme plus lointain, retenu)         -> 540/760 ≈ 0,71
+  SST:SUBST  de « chêne »  = 680  (plus forte annotation de « chêne »)       -> 680/680  = 1,00
+
+cuillère de bois  côté B :  H:matériau:1,00  SST:SUBST:1,00
+table de chêne    côté B :  H:bois:1,00  H:matériau:0,71  SST:SUBST:1,00
+
+->
+
+fusion côté B :  SST:SUBST:2,00  H:matériau:1,71  H:bois:1,00
+```
+
+Même mécanique que `bois:2  matériau:2  SUBST:2  chêne:1` — on
+additionne vecteur à vecteur — sauf que les contributions ne sont plus
+toutes égales à 1 : `matériau` ne pèse que 0,71 chez « chêne » parce
+que c'est un hyperonyme plus lointain que `bois`, alors qu'il pesait
+1,00 chez « bois » qui l'a comme hyperonyme direct le plus fort. La
+somme, la descente et le cosinus se calculent ensuite exactement
+pareil sur ce vecteur.
+
 On fusionne toujours les deux nœuds les plus proches, jusqu'à une
 racine unique par type : 49 fusions pour 50 exemples, 99 nœuds.
 
@@ -103,6 +133,55 @@ racine            0,64
 ```
 
 Aucun enfant ne fait mieux : arrêt à la racine. Prédiction : Matière.
+
+### Avec de vrais poids : comparer un nouveau syntagme
+
+Le principe de l'étape 1 ne change pas : chaque symbole du syntagme à
+classer « vote » avec le poids que lui donne le profil du type — sauf
+qu'avec des poids réels, **chaque vote est lui-même pondéré**, des deux
+côtés de la comparaison, et pas seulement présent ou absent.
+
+Reprenons le nœud à deux feuilles du §1 (« bois » + « chêne »,
+fusion côté B : `SST:SUBST:2,00  H:matériau:1,71  H:bois:1,00`) et
+faisons-y arriver un nouveau syntagme, « boîte de hêtre ». Signature
+pondérée de « hêtre », côté B, construite avec la même recette que
+pour « bois » et « chêne » :
+
+```
+s(hêtre) côté B :  H:bois:0,95  SST:SUBST:1,00
+```
+
+(« hêtre » a lui aussi « bois » comme hyperonyme le plus fort, mais à
+0,95 plutôt que 1,00 — un cran plus faible que pour « chêne ». La
+signature de « hêtre » ne porte pas le symbole `H:matériau`, qui
+n'intervient donc pas dans la comparaison.)
+
+**Étape 1 — le vote.** Pour chaque symbole présent **dans les deux**
+vecteurs, on multiplie le poids du syntagme par le poids que porte ce
+même symbole dans le nœud, puis on additionne :
+
+```
+H:bois     : 0,95 (hêtre)  × 1,00 (nœud)  =  0,95
+SST:SUBST  : 1,00 (hêtre)  × 2,00 (nœud)  =  2,00
+                                     total =  2,95
+```
+
+`H:matériau`, absent de la signature de « hêtre », ne vote pas : il ne
+rapproche ni n'éloigne la comparaison, exactement comme un symbole
+absent valait 0 dans la version binaire. Le cosinus divise ensuite ce
+total par la norme du nœud (≈ 2,82) et celle de « hêtre » (≈ 1,38), ce
+qui donne environ **0,76** — un score comparable, à cette
+normalisation près, à celui obtenu face aux quatorze autres profils de
+type, exactement comme `0,64` contre `0,31` et `0,28` plus haut pour
+« commode de merisier ».
+
+La mécanique est donc identique à celle de l'étape 1 avec « commode de
+merisier » : un vote par symbole partagé, une somme, une division par
+les normes. Ce qui change, c'est seulement la valeur de chaque voix —
+un hyperonyme fort compte plus qu'un hyperonyme lointain, du côté du
+profil comme du côté du syntagme à classer — et la **descente** de
+l'étape 2 s'applique ensuite sans aucune modification, sur ce même
+genre de score.
 
 ## 3. La forme réelle des arbres : des peignes
 

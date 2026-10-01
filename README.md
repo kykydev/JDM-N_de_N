@@ -39,44 +39,11 @@ test.
 | plus proche voisin sur les feuilles — test | 0,585 |
 | union · arbre · descente — test | 0,219 |
 
-Avec les signatures retenues, **350 des 450 exemples de test sont justes (77,8 %)**, contre
-270 pour la méthode à seuil. Nous sommes **0,006 au-dessus de l'article**, un écart qui n'est
+Avec les signatures retenues, **350 des 450 exemples de test sont justes (77,8 %)**.  Nous sommes **0,006 au-dessus de l'article**, un écart qui n'est
 pas une différence à cette taille de test : on peut dire « au niveau de l'article ». Sept
 types sur quinze dépassent son F1, dont `r_has_property-1` (0,98 contre 0,59), qui est son
 pire type ; les plus en retrait sont `r_depict`, `r_product_of` et `r_holo`.
 
-Quatre réserves, détaillées dans `reports/rapport_final.md` et
-`reports/rapport_final_signatures.md` :
-
-- **Le gain vient de la représentation, pas de l'arbre.** Comparer l'exemple aux seuls
-  quinze profils de racine donne le même F1 en validation croisée (0,783). Les prédictions
-  se font à la racine dans **50,9 %** des cas avec les signatures binaires et **43,6 %**
-  avec les signatures retenues ; dans les deux cas le nœud gagnant couvre en moyenne 97 %
-  des exemples de son type. Les arbres sont des peignes, et descendre n'y retire que
-  quelques feuilles du profil — voir
-  [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) §3 et §4.
-- **Le gain des signatures retenues n'est pas établi, et il mêle deux changements.**
-  +0,025 de F1 sur le test, +0,033 annoncé par la validation croisée (0,819 contre 0,786,
-  sur les mêmes 15 mesures) ; mais sur les 68 exemples dont la justesse change (39
-  corrigés, 29 cassés), un test des signes donne **p = 0,27**. Et ce gain additionne deux
-  réglages, car les signatures retenues changent à la fois les poids (`binaire` → `jdm`)
-  et le symbole du terme (`T0` présent → `T2` retiré) : le retrait du terme vaut
-  **+0,003 ± 0,011**, sous son écart-type, et la pondération **+0,030 ± 0,028** (+0,028 sur
-  dix graines, p = 0,002). L'écart de test, lui, ne sépare pas les deux.
-- **La pondération casse presque autant qu'elle corrige.** Sur les 450 exemples de test,
-  **39 corrigés contre 29 cassés** — solde net de 10. **Cinq types sur quinze reculent**
-  (`r_depict`, `r_has_causatif`, `r_social_tie`, `r_own-1`, `r_processus_agent`), et
-  `r_depict` devient un **aimant** : 37 prédictions pour 30 attendus, son F1 tombant de
-  0,61 à 0,54. Le gain macro de 0,025 est donc un solde, pas une amélioration uniforme.
-- **L'hypothèse de polysémie n'est pas confirmée.** La part des erreurs attribuées à la
-  polysémie tombe de 57,8 % à 20,9 %, mais c'est un résidu de l'ordre de priorité des
-  causes ; l'écart de taux d'erreur entre exemples polysémiques et autres ne se resserre
-  pas (+0,082 contre +0,055). **Ces chiffres-là, comme les 74,5 % de « classe multiple »,
-  viennent de l'évaluation des signatures BINAIRES** (`rapport_final.md`) : l'analyse des
-  causes d'erreur n'a pas été refaite sur les signatures retenues. Et les 74,5 % sont
-  gonflés par construction : « classe multiple » se déclenche dès qu'un autre type arrive à
-  5 % relatif du score gagnant, or les scores sont très resserrés — le critère attrape donc
-  des erreurs ordinaires en plus des vraies ambiguïtés.
 
 ## Résultats
 
@@ -176,15 +143,7 @@ collecte. `data/signatures/` garde les signatures **initiales** — celles-là b
 sans préfixe — que lit encore `evaluation_finale.py`.
 
 Ce que la pondération apporte, trait par trait, et avec quelle confiance :
-[rapport_ponderation.md](reports/rapport_ponderation.md). En résumé, sur dix graines et en
-test de Wilcoxon apparié : les trois traits ensemble gagnent **+0,028** de F1 (p = 0,002,
-dix graines favorables sur dix), mais **pris séparément aucun ne vaut cela** — `H` seul
-−0,001, `SST` seul +0,003 (un gain *nominal* : p = 0,049, qui ne survit pas au seuil de
-Bonferroni de 0,0125 pour quatre comparaisons), et `TRT` seul **−0,016**, c'est-à-dire une
-dégradation franche. La somme des
-trois effets séparés est négative quand leur conjonction est positive : pondérer un seul
-trait déséquilibre la norme du vecteur face aux deux autres restés à 1. Il n'y a donc pas
-de version allégée de la pondération à en tirer.
+[rapport_ponderation.md](reports/rapport_ponderation.md).
 
 ## Historique des méthodes testées
 
@@ -194,7 +153,7 @@ de version allégée de la pondération à en tirer.
 | Union · arbre · descente (**écartée**) | 0,219 (test), 0,224 (validation croisée) | [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md), [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
 | Plus proche voisin sur les feuilles | 0,585 (test), 0,534 (validation croisée) | [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
 | Grille de 61 configurations (représentation × structure × classification) | de 0,224 à 0,784 (validation croisée) | [rapport_grille.md](reports/rapport_grille.md) |
-| Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md), [rapport_arbres_somme.md](reports/rapport_arbres_somme.md) |
+| Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/historique/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md), [rapport_arbres_somme.md](reports/historique/rapport_arbres_somme.md) |
 | Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée, 3 graines) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |
 | Pondération trait par trait, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée, 10 graines) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
 | **Somme · arbre · descente, signatures retenues `jdm · T2`** | **0,778** (test), 0,819 (validation croisée, 3 graines) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
@@ -211,10 +170,10 @@ les prédictions de test de cette phase ont été supprimés ; ils restent dans 
 `8bd078a`.
 
 Les diagnostics qui ont fixé la construction des signatures restent valables quelle que
-soit la méthode : [rapport_sonde_jdm.md](reports/rapport_sonde_jdm.md) (coupure à 20
+soit la méthode : [rapport_sonde_jdm.md](reports/historique/rapport_sonde_jdm.md) (coupure à 20
 hyperonymes, 15 types de relations non sémantiques écartés) et
-[diagnostic_trt.md](reports/diagnostic_trt.md) avec
-[diagnostic_trt_tour2.md](reports/diagnostic_trt_tour2.md) (garder tous les types TRT
+[diagnostic_trt.md](reports/historique/diagnostic_trt.md) avec
+[diagnostic_trt_tour2.md](reports/historique/diagnostic_trt_tour2.md) (garder tous les types TRT
 sémantiques, lecture fidèle à l'article).
 
 ## Le pipeline
@@ -235,7 +194,7 @@ data/signatures/          1867 signatures, une par terme
    │  grasp.py            un arbre par type, fusion des deux nœuds les plus proches
    ▼
 data/modeles/             arbres_somme.json (régénérable par grasp.py, non versionné)
-   │                      -> reports/rapport_arbres_somme.md décrit ces quinze arbres
+   │                      -> reports/historique/rapport_arbres_somme.md décrit ces quinze arbres
    │  grille.py           compare les configurations en validation croisée, sans test
    │  variantes_signatures.py  compare les signatures en validation croisée, sans test
    │  ponderation_traits.py    la pondération trait par trait, 10 graines, sans test
@@ -273,15 +232,15 @@ vérifier un chiffre ou comprendre une décision de construction.
 
 | étape | rapport | ce qu'on y trouve |
 |---|---|---|
-| corpus | [rapport_corpus.md](reports/rapport_corpus.md) | Contrôle des 15 fichiers du corpus : comptes, découpages A / de / B, déterminant et définitude, doublons signalés. |
-| corpus | [remplacements_proposes.csv](reports/remplacements_proposes.csv) | Les deux termes absents de JDM (« cacao de Côte », « diamants d'Afrique ») : des découpages concurrents que cette absence écarte, sans remplacement à faire. |
-| collecte | [rapport_sonde_jdm.md](reports/rapport_sonde_jdm.md) | La sonde de 30 termes qui a tout cadré avant la collecte : endpoints de l'API, coupure à 20 hyperonymes, les 15 types TRT non sémantiques à écarter. |
-| collecte | [rapport_collecte.md](reports/rapport_collecte.md) | La collecte des 1867 termes : volumes, latences, erreurs, et l'optimisation du payload de `/relations/to` (−82 % de volume à résultat identique). |
-| signatures | [rapport_signatures.md](reports/rapport_signatures.md) | Les signatures initiales, **binaires** : vocabulaire, tailles, symboles les plus fréquents, signatures quasi vides. |
-| arbres | [rapport_arbres_somme.md](reports/rapport_arbres_somme.md) | Les quinze arbres de la configuration retenue : construction, profondeurs, poids, et statistiques de la descente. |
-| évaluation | [rapport_final.md](reports/rapport_final.md) | La même évaluation de test avec les signatures **binaires** : F1 0,753, et l'analyse des 110 erreurs (polysémie, classe multiple). Dépassé par `rapport_final_signatures.md`, mais c'est lui qui porte l'analyse des causes d'erreur. |
-| diagnostics TRT | [diagnostic_trt.md](reports/diagnostic_trt.md) | Huit politiques de sélection du trait TRT mesurées : garder les types les plus fournis d'un terme échoue, filtrer sur la fréquence dans le corpus marche mieux. |
-| diagnostics TRT | [diagnostic_trt_tour2.md](reports/diagnostic_trt_tour2.md) | Le second tour : seuil, formulation, critère de fusion. Conclusion de méthode — les deux politiques se valent sur le F1, et deux tours avaient optimisé une métrique de substitution. |
+| corpus | [rapport_corpus.md](reports/historique/rapport_corpus.md) | Contrôle des 15 fichiers du corpus : comptes, découpages A / de / B, déterminant et définitude, doublons signalés. |
+| corpus | [remplacements_proposes.csv](reports/historique/remplacements_proposes.csv) | Les deux termes absents de JDM (« cacao de Côte », « diamants d'Afrique ») : des découpages concurrents que cette absence écarte, sans remplacement à faire. |
+| collecte | [rapport_sonde_jdm.md](reports/historique/rapport_sonde_jdm.md) | La sonde de 30 termes qui a tout cadré avant la collecte : endpoints de l'API, coupure à 20 hyperonymes, les 15 types TRT non sémantiques à écarter. |
+| collecte | [rapport_collecte.md](reports/historique/rapport_collecte.md) | La collecte des 1867 termes : volumes, latences, erreurs, et l'optimisation du payload de `/relations/to` (−82 % de volume à résultat identique). |
+| signatures | [rapport_signatures.md](reports/historique/rapport_signatures.md) | Les signatures initiales, **binaires** : vocabulaire, tailles, symboles les plus fréquents, signatures quasi vides. |
+| arbres | [rapport_arbres_somme.md](reports/historique/rapport_arbres_somme.md) | Les quinze arbres de la configuration retenue : construction, profondeurs, poids, et statistiques de la descente. |
+| évaluation | [rapport_final.md](reports/historique/rapport_final.md) | La même évaluation de test avec les signatures **binaires** : F1 0,753, et l'analyse des 110 erreurs (polysémie, classe multiple). Dépassé par `rapport_final_signatures.md`, mais c'est lui qui porte l'analyse des causes d'erreur. |
+| diagnostics TRT | [diagnostic_trt.md](reports/historique/diagnostic_trt.md) | Huit politiques de sélection du trait TRT mesurées : garder les types les plus fournis d'un terme échoue, filtrer sur la fréquence dans le corpus marche mieux. |
+| diagnostics TRT | [diagnostic_trt_tour2.md](reports/historique/diagnostic_trt_tour2.md) | Le second tour : seuil, formulation, critère de fusion. Conclusion de méthode — les deux politiques se valent sur le F1, et deux tours avaient optimisé une métrique de substitution. |
 
 ### Archive
 
@@ -299,7 +258,7 @@ F1 de 0,597 et 0,585 que le tableau d'historique met en regard.
 ### Deux annexes, qui ne se lisent pas seules
 
 `reports/rapport_grille_courbes.svg` est la figure de `rapport_grille.md`, régénérée avec
-lui par `grille.py`. `reports/phase1_payload.json` n'est pas un rapport mais la **donnée**
+lui par `grille.py`. `reports/historique/phase1_payload.json` n'est pas un rapport mais la **donnée**
 que `jdm_collect.py` relit pour écrire le §1 de `rapport_collecte.md` : sans ce fichier, ce
 §1 se réduit à « _Mesures absentes_ », et le reconstituer demanderait de relancer la
 collecte. Ne pas le supprimer.
