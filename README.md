@@ -131,7 +131,7 @@ de version allégée de la pondération à en tirer.
 | Union · arbre · descente (**écartée**) | 0,219 (test), 0,224 (validation croisée) | [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md), [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
 | Plus proche voisin sur les feuilles | 0,585 (test), 0,534 (validation croisée) | [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) |
 | Grille de 61 configurations (représentation × structure × classification) | de 0,224 à 0,784 (validation croisée) | [rapport_grille.md](reports/rapport_grille.md) |
-| Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) |
+| Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md), [rapport_arbres_somme.md](reports/rapport_arbres_somme.md) |
 | Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée, 3 graines) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |
 | Pondération trait par trait, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée, 10 graines) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
 | **Somme · arbre · descente, signatures retenues `jdm · T2`** | **0,778** (test), 0,819 (validation croisée, 3 graines) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
@@ -172,6 +172,7 @@ data/signatures/          1867 signatures, une par terme
    │  grasp.py            un arbre par type, fusion des deux nœuds les plus proches
    ▼
 data/modeles/             arbres_somme.json (régénérable par grasp.py, non versionné)
+   │                      -> reports/rapport_arbres_somme.md décrit ces quinze arbres
    │  grille.py           compare les configurations en validation croisée, sans test
    │  variantes_signatures.py  compare les signatures en validation croisée, sans test
    │  ponderation_traits.py    la pondération trait par trait, 10 graines, sans test
@@ -186,6 +187,13 @@ data/resultats/           predictions_finales*.json, matrice_confusion_finale*.c
 Chaque étape écrit un rapport dans `reports/`. **Les rapports sont le produit principal
 du projet** : le code produit des chiffres, les rapports disent ce qu'ils signifient.
 
+`reports/archive/` garde les quatre rapports qu'aucun script ne régénère plus, parce
+qu'ils documentent des méthodes abandonnées : `rapport_grasp.md`,
+`rapport_classification.md` et `rapport_evaluation.md` pour l'apprentissage à seuil,
+`rapport_arbres.md` pour les arbres en union. Ils restent la source des F1 de 0,597 et
+0,585 que le tableau d'historique met en regard, et ne sont pas reproductibles en l'état :
+le code qui les écrivait a été retiré au commit `8bd078a`.
+
 ## Les modules
 
 | module | rôle |
@@ -196,7 +204,7 @@ du projet** : le code produit des chiffres, les rapports disent ce qu'ils signif
 | `jdm_collect.py` | collecte des traits bruts de 1867 termes |
 | `signatures.py` | signatures des termes, similarité cosinus |
 | `grasp.py` | construction des arbres, en union ou en somme |
-| `classify.py` | score (formule 3), descente, métriques ; garde du code de la phase union (exhaustifs, diagnostics de branche) qui n'est plus appelé |
+| `classify.py` | score (formule 3), descente, métriques. Aucun code mort : ses 15 fonctions sont toutes appelées (celui de la phase union a été retiré, il reste dans le commit `8bd078a`) |
 | `grille.py` | grille de configurations en validation croisée, ne lit pas le test |
 | `evaluation_finale.py` | évaluation de la configuration retenue, lit le test une fois |
 | `variantes_signatures.py` | variantes de construction des signatures (hyperonymes, pondération, TRT/SST) en validation croisée, ne lit pas le test |

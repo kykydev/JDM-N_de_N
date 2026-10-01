@@ -11,7 +11,7 @@ Représentation × structure × classification, comparées sur l'entraînement s
 - **Classifications** : descente dans chaque arbre de la forêt ; exhaustif sur tous les nœuds de la forêt (No Trim) ; exhaustif sur ses racines, orphelines comprises (Trim). Score : formule 3, moyenne des deux côtés. Lien de construction : minimum des deux côtés.
 - **Nombre de calculs** : scores que la méthode calcule seule pour un exemple. La grille, elle, calcule chaque nœud une fois et le relit.
 - **Écart-type** : sur les 5 valeurs de F1 des plis, dénominateur n − 1.
-- Durée totale : 27 s.
+- Durée totale : 20 s.
 
 ## 2. Les configurations de référence
 
