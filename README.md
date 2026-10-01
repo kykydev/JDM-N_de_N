@@ -78,6 +78,69 @@ Quatre réserves, détaillées dans `reports/rapport_final.md` et
   5 % relatif du score gagnant, or les scores sont très resserrés — le critère attrape donc
   des erreurs ordinaires en plus des vraies ambiguïtés.
 
+## Résultats
+
+Configuration retenue — **somme · arbre · descente**, signatures `H 20 · jdm · T2` — sur
+les **450 exemples de test**, 30 par type, lus une seule fois.
+
+### Par type
+
+| type | prédits | P (%) | R (%) | F1 | F1 article | écart |
+|---|---|---|---|---|---|---|
+| `r_has_property-1` | 29 | 100,0 | 96,7 | **0,98** | 0,59 | +0,39 |
+| `r_lieu` | 26 | 100,0 | 86,7 | **0,93** | 0,76 | +0,17 |
+| `r_lieu>origine` | 31 | 90,3 | 93,3 | **0,92** | 0,92 | −0,00 |
+| `r_social_tie` | 36 | 80,6 | 96,7 | **0,88** | 0,91 | −0,03 |
+| `r_objet>matiere` | 23 | 100,0 | 76,7 | **0,87** | 0,80 | +0,07 |
+| `r_processus>instr-1` | 31 | 80,6 | 83,3 | **0,82** | 0,78 | +0,04 |
+| `r_processus_patient` | 38 | 71,1 | 90,0 | **0,79** | 0,75 | +0,04 |
+| `r_has_causatif` | 26 | 84,6 | 73,3 | **0,79** | 0,69 | +0,10 |
+| `r_quantificateur` | 34 | 73,5 | 83,3 | **0,78** | 0,81 | −0,03 |
+| `r_own-1` | 37 | 64,9 | 80,0 | **0,72** | 0,64 | +0,08 |
+| `r_topic` | 29 | 72,4 | 70,0 | **0,71** | 0,76 | −0,05 |
+| `r_processus_agent` | 27 | 74,1 | 66,7 | **0,70** | 0,81 | −0,11 |
+| `r_holo` | 27 | 70,4 | 63,3 | **0,67** | 0,82 | −0,15 |
+| `r_product_of` | 19 | 73,7 | 46,7 | **0,57** | 0,74 | −0,17 |
+| `r_depict` | 37 | 48,6 | 60,0 | **0,54** | 0,80 | −0,26 |
+| **macro** |  | **79,0** | **77,8** | **0,778** | 0,772 | +0,006 |
+
+Source : [data/resultats/matrice_confusion_finale_jdm.csv](data/resultats/matrice_confusion_finale_jdm.csv) ;
+la colonne « F1 article » vient du Tableau 3 de l'article. Détail et analyse des erreurs
+dans [rapport_final_signatures.md](reports/rapport_final_signatures.md).
+
+### Matrice de confusion
+
+**1** `r_depict` · **2** `r_has_causatif` · **3** `r_has_property-1` · **4** `r_holo` · **5** `r_lieu` · **6** `r_lieu>origine` · **7** `r_objet>matiere` · **8** `r_own-1` · **9** `r_processus>instr-1` · **10** `r_processus_agent` · **11** `r_processus_patient` · **12** `r_product_of` · **13** `r_quantificateur` · **14** `r_social_tie` · **15** `r_topic`
+
+| attendu \ prédit | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **1.** `r_depict` | **18** | · | · | 2 | · | · | · | 2 | 2 | 1 | 4 | · | · | 1 | · |
+| **2.** `r_has_causatif` | 3 | **22** | · | · | · | · | · | · | · | · | 2 | · | 3 | · | · |
+| **3.** `r_has_property-1` | · | · | **29** | · | · | · | · | · | · | · | · | · | · | 1 | · |
+| **4.** `r_holo` | 7 | · | · | **19** | · | · | · | · | · | · | · | · | 1 | · | 3 |
+| **5.** `r_lieu` | 2 | · | · | · | **26** | 1 | · | 1 | · | · | · | · | · | · | · |
+| **6.** `r_lieu>origine` | · | · | · | · | · | **28** | · | 1 | · | · | · | · | · | 1 | · |
+| **7.** `r_objet>matiere` | 1 | · | · | 2 | · | · | **23** | · | · | · | 1 | 1 | 2 | · | · |
+| **8.** `r_own-1` | 1 | · | · | · | · | · | · | **24** | · | · | · | 3 | · | 2 | · |
+| **9.** `r_processus>instr-1` | · | · | · | 2 | · | · | · | · | **25** | · | · | · | 1 | · | 2 |
+| **10.** `r_processus_agent` | · | 4 | · | · | · | · | · | · | · | **20** | 3 | · | 1 | 1 | 1 |
+| **11.** `r_processus_patient` | · | · | · | · | · | · | · | · | · | 3 | **27** | · | · | · | · |
+| **12.** `r_product_of` | 4 | · | · | 1 | · | 2 | · | 6 | · | 2 | · | **14** | · | · | 1 |
+| **13.** `r_quantificateur` | · | · | · | 1 | · | · | · | 1 | · | 1 | · | 1 | **25** | · | 1 |
+| **14.** `r_social_tie` | · | · | · | · | · | · | · | 1 | · | · | · | · | · | **29** | · |
+| **15.** `r_topic` | 1 | · | · | · | · | · | · | 1 | 4 | · | 1 | · | 1 | 1 | **21** |
+
+Source : [data/resultats/matrice_confusion_finale_jdm.csv](data/resultats/matrice_confusion_finale_jdm.csv).
+**Chaque ligne totalise 30 exemples** : la diagonale en gras est le nombre de prédictions
+justes du type, et les autres cellules de la ligne disent vers quel type ses erreurs sont
+parties. Les zéros sont notés « · ».
+
+**Confusions les plus fréquentes** : `r_holo` → `r_depict` (7), `r_product_of` → `r_own-1` (6), `r_topic` → `r_processus>instr-1` (4), `r_product_of` → `r_depict` (4), `r_processus_agent` → `r_has_causatif` (4), `r_depict` → `r_processus_patient` (4).
+
+**La limite la plus visible** : `r_depict` est un **aimant** — il reçoit 37 prédictions
+pour 30 exemples attendus, soit 48,6 % de précision. C'est aussi le type sur lequel
+l'article nous dépasse le plus.
+
 ## La méthode retenue
 
 Chaque type de relation est représenté par un arbre construit par fusions successives des
