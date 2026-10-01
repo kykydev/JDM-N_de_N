@@ -234,6 +234,12 @@ VARIANTES_H = (H_TOP, 50, 100, 200, "tous")
 #   jdm : poids de la collecte, normalisés par terme et par trait.  jdm×idf : produit.
 VARIANTES_PONDERATIONS = ("binaire", "idf", "jdm", "jdm×idf")
 
+# Pondérations partielles : seul le trait nommé reçoit les poids de la collecte, les deux
+# autres restent binaires. Elles ne concourent PAS au choix de la configuration, qui
+# reste celui de l'étape 1 ; elles répondent à une autre question, celle de savoir quel
+# trait apporte quelque chose seul, et si le tout vaut la somme de ses parties.
+VARIANTES_PONDERATIONS_PAR_TRAIT = ("jdm_H", "jdm_TRT", "jdm_SST")
+
 # Traitement du symbole du terme lui-même : T2 absent, T0 sans préfixe (actuel), T1 sous
 # la forme H:<terme>. Rangés du plus simple au plus complexe.
 VARIANTES_TERME = ("T2", "T0", "T1")

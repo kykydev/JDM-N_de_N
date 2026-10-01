@@ -50,6 +50,10 @@ CHAMPS = ("h", "pond", "terme", "trt", "sst", "df_min")
 FAMILLE_IDF = ("idf", "jdm×idf")
 FAMILLE_JDM = ("jdm", "jdm×idf")
 
+# Préfixes que chaque pondération partielle pondère ; les autres symboles restent à 1.
+TRAITS_JDM = {"jdm_H": (config.PREFIXE_H,), "jdm_TRT": (config.PREFIXE_TRT,),
+              "jdm_SST": (config.PREFIXE_SST,)}
+
 # Données lues une fois avant de lancer les processus, héritées par les processus fils.
 DONNEES = {}
 
@@ -240,11 +244,23 @@ def frequences_documentaires(brutes, termes_train):
     return Counter(symbole for terme in termes_train for symbole in brutes[terme])
 
 
+def porte_les_poids(symbole, pond):
+    """Dit si ce symbole reçoit le poids de la collecte sous cette pondération.
+    Retourne un booléen.
+
+    Les pondérations partielles ne pondèrent qu'un trait, reconnu à son préfixe. Le
+    symbole du terme lui-même n'en porte aucun : il reste à 1, comme en binaire."""
+    if pond in FAMILLE_JDM:
+        return True
+    prefixes = TRAITS_JDM.get(pond)
+    return prefixes is not None and symbole.startswith(prefixes)
+
+
 def poids_final(symbole, poids_collecte, pond, df, n_termes):
     """Poids d'un symbole selon la pondération. Retourne un flottant.
 
     Un symbole absent des statistiques reçoit le poids d'un symbole de df = 1."""
-    facteur_jdm = poids_collecte if pond in FAMILLE_JDM else 1.0
+    facteur_jdm = poids_collecte if porte_les_poids(symbole, pond) else 1.0
     facteur_idf = math.log(n_termes / df.get(symbole, 1)) if pond in FAMILLE_IDF else 1.0
     return facteur_jdm * facteur_idf
 
@@ -400,6 +416,27 @@ def taches_manquantes(cles, cache):
             for graine in config.GRAINES_VARIANTES for pli in range(config.GRILLE_PLIS)]
 
 
+def contexte_parallele():
+    """Contexte multiprocessing utilisable, ou None s'il faut calculer en séquentiel.
+
+    Les processus fils héritent DONNEES par « fork ». Là où fork n'existe pas (Windows),
+    « spawn » les ferait repartir d'un module vide : on calcule dans ce processus."""
+    try:
+        return multiprocessing.get_context("fork")
+    except ValueError:
+        return None
+
+
+def mesures_calculees(a_faire, processus):
+    """Itère les mesures des tâches, en parallèle si la plateforme le permet."""
+    contexte = contexte_parallele() if processus > 1 else None
+    if contexte is None:
+        yield from map(tache, a_faire)
+        return
+    with contexte.Pool(processus) as groupe:
+        yield from groupe.imap_unordered(tache, a_faire)
+
+
 def executer(cles, cache, processus):
     """Mesure les configurations absentes du cache, en parallèle. Ne retourne rien.
 
@@ -411,21 +448,21 @@ def executer(cles, cache, processus):
     if processus == 0:
         raise SystemExit(f"Mesures absentes du cache ({len(a_faire)}) : lancer sans "
                          "--rapport-seulement.")
+    if processus > 1 and contexte_parallele() is None:
+        print(f"  fork indisponible : {len(a_faire)} mesures en séquentiel.", flush=True)
     par_cle = {}
     debut = time.perf_counter()
-    contexte = multiprocessing.get_context("fork")
     attendues = config.GRILLE_PLIS * len(config.GRAINES_VARIANTES)
-    with contexte.Pool(processus) as groupe:
-        for mesure in groupe.imap_unordered(tache, a_faire):
-            lot = par_cle.setdefault(mesure["cle"], [])
-            lot.append(mesure)
-            if len(lot) == attendues:
-                cache[mesure["cle"]] = sorted(lot, key=lambda m: (m["graine"], m["pli"]))
-                ecrire_cache(cache)
-                print(f"  {mesure['cle']:<45s} F1 "
-                      f"{grasp.fr(statistics.fmean(m['f1'] for m in lot))}"
-                      f"   ({grasp.fr(time.perf_counter() - debut, 0)} s écoulées)",
-                      flush=True)
+    for mesure in mesures_calculees(a_faire, processus):
+        lot = par_cle.setdefault(mesure["cle"], [])
+        lot.append(mesure)
+        if len(lot) == attendues:
+            cache[mesure["cle"]] = sorted(lot, key=lambda m: (m["graine"], m["pli"]))
+            ecrire_cache(cache)
+            print(f"  {mesure['cle']:<45s} F1 "
+                  f"{grasp.fr(statistics.fmean(m['f1'] for m in lot))}"
+                  f"   ({grasp.fr(time.perf_counter() - debut, 0)} s écoulées)",
+                  flush=True)
 
 
 def mesures_de(cle, cache):
@@ -525,6 +562,20 @@ def etape_1(cache, processus, terme):
             "meilleure": meilleure, "proches": proches}
 
 
+def etape_1_traits(cache, processus, reference):
+    """Décompose le gain de la pondération trait par trait. Retourne un dict de l'étape.
+
+    Lecture seule : ces configurations ne concourent pas au choix, qui reste celui de
+    l'étape 1. On mesure, contre la même référence binaire et sur les mêmes plis, ce que
+    chaque trait pondéré apporte seul, puis les trois ensemble."""
+    candidats = [reference]
+    candidats += [variante(reference, pond=pond)
+                  for pond in config.VARIANTES_PONDERATIONS_PAR_TRAIT]
+    candidats.append(variante(reference, pond="jdm"))
+    executer(candidats, cache, processus)
+    return {"reference": reference, "candidats": candidats}
+
+
 def etape_2(cache, processus, point_de_depart):
     """Fait varier TRT puis SST, un paramètre à la fois. Retourne un dict de l'étape."""
     reference = point_de_depart
@@ -569,6 +620,8 @@ def enchainer(cache, processus):
     etapes[0] = etape_0(cache, processus)
     print("Étape 1 — hyperonymes × pondération", flush=True)
     etapes[1] = etape_1(cache, processus, etapes[0]["retenue"][2])
+    print("Étape 1 bis — pondération trait par trait", flush=True)
+    etapes["traits"] = etape_1_traits(cache, processus, etapes[1]["reference"])
     print("Étape 2 — sélection TRT et SST", flush=True)
     etapes[2] = etape_2(cache, processus, etapes[1]["retenue"])
     print("Étape 3 — fréquence minimale", flush=True)
@@ -706,8 +759,11 @@ def section_dispositif(etapes, cache, coherence):
     f1_seed = [m["f1"] for m in mesures_de(reference, cache) if m["graine"] == seed]
     return ["# Variantes de construction des signatures", "",
             "Étude en validation croisée sur l'entraînement seul, méthode figée "
-            "(somme · arbre · descente). **Le test n'est pas lu.** À montrer avant toute "
-            "lecture du test.", "",
+            "(somme · arbre · descente). **Ce script ne lit pas le test** : tout ce qui "
+            "suit est mesuré sur les 750 exemples d'entraînement. Le test a été lu "
+            "ensuite, une seule fois, pour la seule configuration retenue "
+            "(`rapport_final_signatures.md`) ; la § 3.1 a été ajoutée après cette "
+            "lecture et n'a donc pas pu la guider.", "",
             "## 0. Protocole", "",
             f"- **{config.GRILLE_PLIS} plis stratifiés par type**, répétés avec les graines "
             f"{', '.join(str(g) for g in config.GRAINES_VARIANTES)} : "
@@ -727,6 +783,9 @@ def section_dispositif(etapes, cache, coherence):
             "- **jdm** : H = poids de l'hyperonyme / poids maximal des H retenus du terme ; "
             "SST = poids / poids maximal des SST retenus ; TRT = log(1 + effectif) / "
             "log(1 + effectif maximal des types retenus) ; le terme lui-même vaut 1.",
+            "- **Pondérations partielles** (`jdm_H`, `jdm_TRT`, `jdm_SST`) : seul le trait "
+            "nommé reçoit ces poids, les deux autres restent à 1. Elles servent à lire le "
+            "gain trait par trait (§ 3.1) et ne concourent pas au choix.",
             "- **Règle de choix** : la plus simple parmi les configurations qui ne se "
             "distinguent pas de la meilleure (différence appariée moyenne ≤ son "
             "écart-type). Complexité : moins d'hyperonymes < plus, puis binaire < idf < "
@@ -802,6 +861,77 @@ def section_etape_1(etape, cache):
                 ["H", "pondération", "F1 moyen ± é.-t.", "différence ± é.-t.",
                  "taille médiane", "durée"], corps) + [
             "", phrase_de_choix(etape, lambda c: f"H {c[0]}, {c[1]}"), ""]
+
+
+NOMS_TRAITS = {"binaire": "aucun (référence)", "jdm_H": "H seul", "jdm_TRT": "TRT seul",
+               "jdm_SST": "SST seul", "jdm": "les trois (`jdm`)"}
+
+
+def gains_par_trait(etape, cache):
+    """Gain apparié moyen de chaque pondération sur la référence binaire.
+    Retourne pondération -> flottant."""
+    return {cle[1]: moyenne_et_ecart(differences(cle, etape["reference"], cache))[0]
+            for cle in etape["candidats"] if cle != etape["reference"]}
+
+
+def section_traits(etape, retenue_1, cache):
+    """Ce que chaque trait pondéré apporte seul. Retourne des lignes."""
+    reference = etape["reference"]
+    corps = [ligne_de_tableau([NOMS_TRAITS[c[1]]], c, reference, cache, retenue_1)
+             for c in etape["candidats"]]
+    gains = gains_par_trait(etape, cache)
+    parties = config.VARIANTES_PONDERATIONS_PAR_TRAIT
+    somme = sum(gains[pond] for pond in parties)
+    tout = variante(reference, pond="jdm")
+    battants = [NOMS_TRAITS[pond] for pond in parties
+                if bat_la_reference(variante(reference, pond=pond), reference, cache)]
+    sobres = [NOMS_TRAITS[pond] for pond in parties
+              if indistinguable(variante(reference, pond=pond), tout, cache)]
+    lignes = ["### 3.1 Lecture par trait", "",
+              "La pondération `jdm` touche les trois traits à la fois. Pour savoir lequel "
+              "porte le gain, on ne pondère qu'un trait et on laisse les deux autres à 1, "
+              "au nombre d'hyperonymes retenu à l'étape 1. **Ces configurations ne "
+              "concourent pas au choix** : elles répondent à une question de lecture, pas "
+              "de sélection.", "",
+              en_tete_etape(reference), ""]
+    lignes += tableau(["trait pondéré", "F1 moyen ± é.-t.", "différence ± é.-t.",
+                       "taille médiane", "durée"], corps)
+    lignes += ["", f"- **Seul à battre la référence** : "
+               + (", ".join(battants) if battants else
+                  "aucun trait pris seul ne la bat au sens de la règle") + ".",
+               f"- **Le tout contre la somme de ses parties** : les trois gains séparés "
+               f"valent {classify.ecart_signe(gains['jdm_H'])} (H), "
+               f"{classify.ecart_signe(gains['jdm_TRT'])} (TRT) et "
+               f"{classify.ecart_signe(gains['jdm_SST'])} (SST), soit "
+               f"{classify.ecart_signe(somme)} au total, contre "
+               f"{classify.ecart_signe(gains['jdm'])} pour les trois ensemble : "
+               + ("les traits pondérés se renforcent, le tout dépasse la somme."
+                  if gains["jdm"] > somme + 1e-9 else
+                  "les traits pondérés se recouvrent, le tout reste sous la somme.")]
+    if sobres:
+        lignes += [f"- **Réserve de méthode** : {', '.join(sobres)} ne se distingue pas de "
+                   "`jdm` en différences appariées. La règle de simplicité du projet, "
+                   "appliquée ici, préférerait donc une pondération d'un seul trait. Elle "
+                   "ne l'a pas été : l'étape 1 avait déjà tranché et le test a déjà été "
+                   "lu pour `jdm` (`rapport_final_signatures.md`). Le noter plutôt que le "
+                   "corriger après coup est la lecture honnête."]
+        intransitifs = [NOMS_TRAITS[pond] for pond in parties
+                        if indistinguable(variante(reference, pond=pond), tout, cache)
+                        and not bat_la_reference(variante(reference, pond=pond),
+                                                 reference, cache)]
+        if intransitifs:
+            lignes += ["- **La règle est ici intransitive**, et c'est son principal "
+                       f"enseignement : `jdm` bat la référence, {', '.join(intransitifs)} "
+                       "ne la bat pas, et `jdm` ne se distingue pourtant pas de "
+                       f"{', '.join(intransitifs)}. Trois comparaisons incompatibles entre "
+                       "elles signalent un manque de puissance, pas un classement : avec "
+                       "15 mesures non indépendantes et des écarts de l'ordre de 0,03, "
+                       "« moyenne > écart-type » ne départage pas ces configurations."]
+    else:
+        lignes += ["- Aucune pondération d'un seul trait ne tient le score de `jdm` : "
+                   "pondérer les trois traits est nécessaire, et la configuration retenue "
+                   "à l'étape 1 n'est pas remise en cause."]
+    return lignes + [""]
 
 
 def section_etape_2(etape, cache):
@@ -958,6 +1088,30 @@ def constats_mesures(etapes, cache):
                     f"{'+' if m1 >= 0 else '−'}{fr(abs(m1))} de F1 pour un écart-type de "
                     f"{fr(e_1)}, soit {fr(m1 / e_1, 2)} écart-type. Il franchit la règle fixée "
                     "de peu.")
+    traits = etapes["traits"]
+    gains = gains_par_trait(traits, cache)
+    parties = config.VARIANTES_PONDERATIONS_PAR_TRAIT
+    somme = sum(gains[pond] for pond in parties)
+    battants = [pond for pond in parties
+                if bat_la_reference(variante(traits["reference"], pond=pond),
+                                    traits["reference"], cache)]
+    detail = ", ".join(f"{NOMS_TRAITS[pond].replace(' seul', '')} seul "
+                       f"{classify.ecart_signe(gains[pond])}" for pond in parties)
+    if battants:
+        constats.append(
+            f"**Le gain de la pondération se localise** : "
+            + ", ".join(NOMS_TRAITS[pond].replace(" seul", "") for pond in battants)
+            + f" bat la référence à lui seul ({detail}), contre "
+            f"{classify.ecart_signe(gains['jdm'])} pour les trois ensemble.")
+    else:
+        constats.append(
+            f"**Aucun trait pondéré n'apporte quoi que ce soit seul** : {detail}, "
+            f"quand les trois ensemble valent {classify.ecart_signe(gains['jdm'])}. La "
+            f"somme des parties, {classify.ecart_signe(somme)}, est de signe opposé au "
+            "tout : le gain de la pondération n'est pas la propriété d'un trait mais un "
+            "effet de leur conjonction, et il n'y a donc pas de version allégée à en "
+            "tirer. C'est aussi le constat le plus fragile du rapport, puisque chacune "
+            "de ces différences tient dans son propre écart-type.")
     aucun_trt = variante(e2["reference"], trt="aucun")
     m_trt, _ = moyenne_et_ecart(differences(aucun_trt, e2["reference"], cache))
     autres = [c for c in e2["candidats"] if c != e2["reference"] and c != aucun_trt]
@@ -1008,8 +1162,9 @@ def section_lecture(etapes, cache):
     lignes += ["- **Réserves** : la règle « moyenne > écart-type » est indulgente ; les "
                "15 mesures ne sont pas indépendantes ; et la configuration finale est la "
                "meilleure d'un balayage, donc son F1 de validation croisée est optimiste. "
-               "Seule l'évaluation sur le test, qui n'a pas été lue, dira ce qui reste.",
-               ""]
+               "Seule l'évaluation sur le test dit ce qui en reste : elle a été faite "
+               "depuis, une seule fois, et elle est dans "
+               "`rapport_final_signatures.md`.", ""]
     return lignes
 
 
@@ -1030,6 +1185,7 @@ def construire_rapport(etapes, cache, diagnostic, coherence):
     lignes += section_etape_0(etapes[0], diagnostic, cache)
     lignes += section_distribution(distribution_hyperonymes())
     lignes += section_etape_1(etapes[1], cache)
+    lignes += section_traits(etapes["traits"], etapes[1]["retenue"], cache)
     lignes += section_etape_2(etapes[2], cache)
     lignes += section_etape_3(etapes[3], cache)
     lignes += section_finale(etapes, cache)

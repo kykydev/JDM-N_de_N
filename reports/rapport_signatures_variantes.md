@@ -1,6 +1,6 @@
 # Variantes de construction des signatures
 
-Étude en validation croisée sur l'entraînement seul, méthode figée (somme · arbre · descente). **Le test n'est pas lu.** À montrer avant toute lecture du test.
+Étude en validation croisée sur l'entraînement seul, méthode figée (somme · arbre · descente). **Ce script ne lit pas le test** : tout ce qui suit est mesuré sur les 750 exemples d'entraînement. Le test a été lu ensuite, une seule fois, pour la seule configuration retenue (`rapport_final_signatures.md`) ; la § 3.1 a été ajoutée après cette lecture et n'a donc pas pu la guider.
 
 ## 0. Protocole
 
@@ -9,6 +9,7 @@
 - **Statistiques tirées des données** (fréquences documentaires, centiles TRT, types trop fréquents) : calculées sur les termes d'entraînement du pli seulement, jamais sur les exemples de validation.
 - **Pondération** : un côté est un vecteur de poids réels, un nœud fusionné la somme de ceux de ses enfants, le cosinus se calcule sur les vecteurs. L'exemple à classer utilise les mêmes poids. Un symbole absent des statistiques d'idf reçoit le poids d'un symbole de df = 1 ; un poids nul (symbole présent chez tous les termes) retire le symbole.
 - **jdm** : H = poids de l'hyperonyme / poids maximal des H retenus du terme ; SST = poids / poids maximal des SST retenus ; TRT = log(1 + effectif) / log(1 + effectif maximal des types retenus) ; le terme lui-même vaut 1.
+- **Pondérations partielles** (`jdm_H`, `jdm_TRT`, `jdm_SST`) : seul le trait nommé reçoit ces poids, les deux autres restent à 1. Elles servent à lire le gain trait par trait (§ 3.1) et ne concourent pas au choix.
 - **Règle de choix** : la plus simple parmi les configurations qui ne se distinguent pas de la meilleure (différence appariée moyenne ≤ son écart-type). Complexité : moins d'hyperonymes < plus, puis binaire < idf < jdm < jdm×idf ; pour le terme, absent < sans préfixe < H: ; pour TRT et SST, réglage actuel < aucun < sélections plus élaborées ; sans filtre < avec filtre.
 - **Limite** : les 15 mesures ne sont pas indépendantes (les trois répétitions rebattent les mêmes 750 exemples), donc l'écart-type des différences sous-estime l'incertitude réelle. Et choisir la meilleure de plusieurs dizaines de configurations sur ces mêmes mesures est optimiste.
 - **Contrôle** : la référence `H 20 · binaire · T0 · TRT tous · SST toutes` reconstruite ici donne, sur la seule graine 42, un F1 moyen de 0,784 (`rapport_grille.md` : 0,784) ; ses signatures sont identiques à `data/signatures/` pour 1244 termes sur 1244.
@@ -72,6 +73,25 @@ Référence de l'étape : `H 20 · binaire · T2 · TRT tous · SST toutes`. « 
 | tous | jdm×idf | 0,661 ± 0,055 | −0,128 ± 0,052 | 68 | 32 s |
 
 **Retenue : H 20, jdm.** Meilleur F1 moyen : H 20, jdm. Aucune autre configuration ne reste à un écart-type de la meilleure : elle est retenue sur son seul score.
+
+### 3.1 Lecture par trait
+
+La pondération `jdm` touche les trois traits à la fois. Pour savoir lequel porte le gain, on ne pondère qu'un trait et on laisse les deux autres à 1, au nombre d'hyperonymes retenu à l'étape 1. **Ces configurations ne concourent pas au choix** : elles répondent à une question de lecture, pas de sélection.
+
+Référence de l'étape : `H 20 · binaire · T2 · TRT tous · SST toutes`. « bat » = différence moyenne supérieure à son écart-type, sur 15 différences appariées.
+
+| trait pondéré | F1 moyen ± é.-t. | différence ± é.-t. | taille médiane | durée |
+|---|---|---|---|---|
+| aucun (référence) | 0,789 ± 0,046 | — | 51 | 15 s |
+| H seul | 0,787 ± 0,038 | −0,002 ± 0,033 | 51 | 11 s |
+| TRT seul | 0,773 ± 0,039 | −0,016 ± 0,035 | 51 | 14 s |
+| SST seul | 0,792 ± 0,042 | +0,003 ± 0,016 | 51 | 14 s |
+| les trois (`jdm`) | 0,819 ± 0,031 ← **retenue** | +0,030 ± 0,028 **bat** | 51 | 24 s |
+
+- **Seul à battre la référence** : aucun trait pris seul ne la bat au sens de la règle.
+- **Le tout contre la somme de ses parties** : les trois gains séparés valent −0,002 (H), −0,016 (TRT) et +0,003 (SST), soit −0,014 au total, contre +0,030 pour les trois ensemble : les traits pondérés se renforcent, le tout dépasse la somme.
+- **Réserve de méthode** : H seul ne se distingue pas de `jdm` en différences appariées. La règle de simplicité du projet, appliquée ici, préférerait donc une pondération d'un seul trait. Elle ne l'a pas été : l'étape 1 avait déjà tranché et le test a déjà été lu pour `jdm` (`rapport_final_signatures.md`). Le noter plutôt que le corriger après coup est la lecture honnête.
+- **La règle est ici intransitive**, et c'est son principal enseignement : `jdm` bat la référence, H seul ne la bat pas, et `jdm` ne se distingue pourtant pas de H seul. Trois comparaisons incompatibles entre elles signalent un manque de puissance, pas un classement : avec 15 mesures non indépendantes et des écarts de l'ordre de 0,03, « moyenne > écart-type » ne départage pas ces configurations.
 
 ## 4. Étape 2 — sélection TRT et SST
 
@@ -150,9 +170,10 @@ Référence de l'étape : `H 20 · idf · T2 · TRT tous · SST toutes`. « bat 
 - **La rareté (idf) dégrade le F1 à tous les nombres d'hyperonymes**, avec ou sans poids de la collecte. Écart à binaire, à même H : H 20 : idf −0,106, jdm×idf −0,129 ; H 50 : idf −0,062, jdm×idf −0,066 ; H 100 : idf −0,017, jdm×idf −0,022 ; H 200 : idf −0,008, jdm×idf −0,016 ; H tous : idf −0,009, jdm×idf −0,016.
 - **Plus d'hyperonymes n'aide pas.** En binaire, de H 20 à « tous » le F1 passe de 0,789 à 0,676 ; avec les poids de la collecte, de 0,819 à 0,764. Les poids de la collecte amortissent la chute sans l'annuler, et le meilleur réglage reste à H 20.
 - **Le gain de la pondération de la collecte est mince** : +0,030 de F1 pour un écart-type de 0,028, soit 1,06 écart-type. Il franchit la règle fixée de peu.
+- **Aucun trait pondéré n'apporte quoi que ce soit seul** : H seul −0,002, TRT seul −0,016, SST seul +0,003, quand les trois ensemble valent +0,030. La somme des parties, −0,014, est de signe opposé au tout : le gain de la pondération n'est pas la propriété d'un trait mais un effet de leur conjonction, et il n'y a donc pas de version allégée à en tirer. C'est aussi le constat le plus fragile du rapport, puisque chacune de ces différences tient dans son propre écart-type.
 - **TRT est indispensable, sa sélection ne l'est pas.** Retirer tout TRT coûte 0,177 de F1. Les 4 autres variantes de TRT ou de SST s'écartent d'au plus 0,011, dans le bruit : les conclusions des diagnostics en union ne se transposent pas, mais ne sont pas non plus renversées.
 - **Le seuil de fréquence répare l'idf sans le rendre utile.** df ≥ 2 gagne 0,052 sur l'idf sans seuil, mais reste sous le binaire à même H (0,734 contre 0,789).
-- **Réserves** : la règle « moyenne > écart-type » est indulgente ; les 15 mesures ne sont pas indépendantes ; et la configuration finale est la meilleure d'un balayage, donc son F1 de validation croisée est optimiste. Seule l'évaluation sur le test, qui n'a pas été lue, dira ce qui reste.
+- **Réserves** : la règle « moyenne > écart-type » est indulgente ; les 15 mesures ne sont pas indépendantes ; et la configuration finale est la meilleure d'un balayage, donc son F1 de validation croisée est optimiste. Seule l'évaluation sur le test dit ce qui en reste : elle a été faite depuis, une seule fois, et elle est dans `rapport_final_signatures.md`.
 
 ## 8. Sorties
 
