@@ -39,6 +39,19 @@ F1_ARTICLE = classify.ARTICLE_F1
 F1_SEUIL = classify.ANCIEN_F1
 F1_VOISIN = 0.585
 
+
+def f1_signatures_ponderees():
+    """F1 de test des signatures pondérées, relu de ses prédictions. Retourne un
+    flottant, ou None si l'évaluation n'a pas été faite.
+
+    Lit le fichier de prédictions déjà produit par evaluation_signatures.py : c'est un
+    résultat acquis, pas une relecture du test."""
+    if not config.FICHIER_PREDICTIONS_SIGNATURES.exists():
+        return None
+    enregistre = json.loads(
+        config.FICHIER_PREDICTIONS_SIGNATURES.read_text(encoding="utf-8"))
+    return enregistre["macro_stricte"]["f1"]
+
 # Méthode à seuil, mesurée sur le même test (commit 7150875) : 180 erreurs, dont 104
 # attribuées à la polysémie en attribution exclusive, soit 57,8 %.
 SEUIL_ERREURS = 180
@@ -327,6 +340,13 @@ def section_dispositif(n_test, duree):
             f"- **Configuration** : `{config.REPRESENTATION}` · `{config.STRUCTURE}` · "
             f"`{config.CLASSIFICATION}`, choisie en validation croisée "
             "(`rapport_grille.md`). Aucune configuration de contrôle n'est évaluée ici.",
+            "- **Signatures : les BINAIRES**, celles de `data/signatures/` "
+            "(`H 20 · binaire · T0 · TRT tous · SST toutes`) — chaque symbole présent "
+            "vaut 1. Ce rapport évalue **cette seule représentation** sur le test. Les "
+            "signatures **pondérées**, retenues depuis en validation croisée "
+            "(`rapport_signatures_variantes.md`), sont évaluées sur le même test dans "
+            "`rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2 et la "
+            "pondération est décrite dans `rapport_ponderation.md`.",
             "- **Arbres** : quinze, un par type, réappris sur les 750 exemples "
             "d'entraînement ; un nœud fusionné est la somme des vecteurs de comptes de "
             "ses enfants. Lien de construction : minimum des deux côtés.",
@@ -350,11 +370,25 @@ def section_resultats(evaluation):
               f"**F1 macro : {fr(f1)}** (précision {fr(evaluation['precision'])}, rappel "
               f"{fr(evaluation['rappel'])}, exactitude {pct(evaluation['exactitude'])}, "
               f"{evaluation['corrects']} exemples justes sur {evaluation['total']}).", ""]
-    lignes += tableau(["", "F1 macro", "écart avec la descente somme"],
-                      [["**somme · arbre · descente**", f"**{fr(f1)}**", "—"],
-                       ["article", fr(F1_ARTICLE), ecart_signe(f1 - F1_ARTICLE)],
-                       ["méthode à seuil", fr(F1_SEUIL), ecart_signe(f1 - F1_SEUIL)],
-                       ["plus proche voisin", fr(F1_VOISIN), ecart_signe(f1 - F1_VOISIN)]])
+    corps_macro = [["**somme · arbre · descente, signatures binaires** (ce rapport)",
+                    f"**{fr(f1)}**", "—"]]
+    f1_pondere = f1_signatures_ponderees()
+    if f1_pondere is not None:
+        corps_macro.append(["mêmes arbres, **signatures pondérées** "
+                            "(`rapport_final_signatures.md`)", fr(f1_pondere),
+                            ecart_signe(f1 - f1_pondere)])
+    corps_macro += [["article", fr(F1_ARTICLE), ecart_signe(f1 - F1_ARTICLE)],
+                    ["méthode à seuil", fr(F1_SEUIL), ecart_signe(f1 - F1_SEUIL)],
+                    ["plus proche voisin", fr(F1_VOISIN), ecart_signe(f1 - F1_VOISIN)]]
+    lignes += tableau(["", "F1 macro sur les 450 exemples de test",
+                       "écart avec ce rapport"], corps_macro)
+    if f1_pondere is not None:
+        lignes += ["", "Les deux premières lignes sont la **même méthode** "
+                   "(somme · arbre · descente) sur le **même test**, et ne diffèrent que "
+                   "par la construction des signatures : binaire ici, pondérée par les "
+                   f"poids de JDM là. L'écart, {fr(abs(f1_pondere - f1))}, est le gain de "
+                   "la pondération ; le test des signes y donnait p = 0,27, donc il n'est "
+                   "pas établi au seuil usuel."]
     corps = []
     for rt in sorted(evaluation["par_type"], key=lambda t: -evaluation["par_type"][t]["f1"]):
         d = evaluation["par_type"][rt]

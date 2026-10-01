@@ -14,7 +14,9 @@ une dépiction. L'article retient 15 types et cherche à les prédire automatiqu
 **JeuxDeMots** sait de A et de B. Ce « ce que JDM sait d'un terme » s'appelle une
 **signature** : un ensemble d'étiquettes textuelles, réunissant les hyperonymes du terme
 (`H:`), les types de relations qui pointent vers lui (`TRT:`) et ses types ontologiques
-standard (`SST:`). Le côté gauche (A) et le côté droit (B) ne sont jamais mélangés :
+standard (`SST:`). Chaque étiquette **porte un poids réel**, repris de la force que JDM
+donne à la relation : une signature est donc un vecteur creux `symbole -> poids`, et non
+un simple ensemble. Le côté gauche (A) et le côté droit (B) ne sont jamais mélangés :
 « vin de France » n'est pas « France de vin ».
 
 Python 3, **bibliothèque standard uniquement** (`requests` pour les appels JDM). Aucun
@@ -70,13 +72,36 @@ Les trois choix qui la définissent sont figés dans `src/config.py`
 disponibles en paramètre. Le lien de construction est le minimum des deux côtés, le score
 de classification la moyenne (formule 3 de l'article).
 
-**Les signatures.** Elles gardent 20 hyperonymes et tous les types TRT et SST sémantiques ;
-chaque symbole est pondéré par le poids que la collecte lui donne (normalisé par terme et
-par trait) et le terme lui-même n'est plus ajouté. Ces réglages, `SIGNATURES_RETENUES` dans
-`config.py`, n'existent qu'en mémoire : `predire.py` et l'évaluation finale les
-reconstruisent à chaque lancement depuis la collecte. `data/signatures/` garde les
-signatures initiales (symboles binaires, terme sans préfixe), que lit encore
-`evaluation_finale.py`.
+**Les signatures.** Elles gardent 20 hyperonymes et tous les types TRT et SST sémantiques,
+et le terme lui-même n'est plus ajouté. **Les symboles ne valent pas 1** : chacun porte un
+poids réel, normalisé par terme pour qu'un terme très documenté dans JDM ne pèse pas plus
+qu'un autre dans la somme d'un nœud.
+
+| trait | poids d'un symbole |
+|---|---|
+| `H:` hyperonymes | poids de la relation ÷ poids du plus fort hyperonyme retenu du terme |
+| `TRT:` relations entrantes | `log(1 + effectif)` ÷ `log(1 + plus grand effectif retenu du terme)` |
+| `SST:` types ontologiques | poids de l'annotation ÷ poids de la plus forte annotation du terme |
+
+Le logarithme sur `TRT` n'est pas décoratif : les effectifs vont de 1 à plus de 700 000, et
+sans lui un seul type écraserait tous les autres dans le cosinus. Une feuille est donc un
+vecteur de poids réels ; un nœud fusionné en est la somme, et le cosinus se calcule sur les
+vecteurs — la structure décrite plus haut ne change pas pour autant.
+
+Ces réglages, `SIGNATURES_RETENUES` dans `config.py`, n'existent qu'en mémoire :
+`predire.py` et l'évaluation finale les reconstruisent à chaque lancement depuis la
+collecte. `data/signatures/` garde les signatures **initiales** — celles-là binaires, terme
+sans préfixe — que lit encore `evaluation_finale.py`.
+
+Ce que la pondération apporte, trait par trait, et avec quelle confiance :
+[rapport_ponderation.md](reports/rapport_ponderation.md). En résumé, sur dix graines et en
+test de Wilcoxon apparié : les trois traits ensemble gagnent **+0,028** de F1 (p = 0,002,
+dix graines favorables sur dix), mais **pris séparément aucun ne vaut cela** — `H` seul
+−0,001, `SST` seul +0,003 (un gain réel mais qui ne survit pas à une correction de
+multiplicité), et `TRT` seul **−0,016**, c'est-à-dire une dégradation franche. La somme des
+trois effets séparés est négative quand leur conjonction est positive : pondérer un seul
+trait déséquilibre la norme du vecteur face aux deux autres restés à 1. Il n'y a donc pas
+de version allégée de la pondération à en tirer.
 
 ## Historique des méthodes testées
 
@@ -88,6 +113,7 @@ signatures initiales (symboles binaires, terme sans préfixe), que lit encore
 | Grille de 61 configurations (représentation × structure × classification) | de 0,224 à 0,784 (validation croisée) | [rapport_grille.md](reports/rapport_grille.md) |
 | Somme · arbre · descente, signatures initiales | 0,753 (test), 0,786 (validation croisée) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) |
 | Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |
+| Pondération trait par trait, 10 graines, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
 | **Somme · arbre · descente, signatures retenues** | **0,778** (test), 0,819 (validation croisée) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
 
 Les Expériences 1 à 3 de l'article (traits, définitude, élagage) ont été menées avec
@@ -113,14 +139,17 @@ data/corpus/clean/        1200 lignes propres + termes.csv (1867 termes)
    │  jdm_collect.py      interroge l'API JeuxDeMots — ~1 h 40, mis en cache
    ▼
 data/collecte/            1 ligne JSON par terme : hyperonymes, relations, annotations
-   │  signatures.py       transforme en ensembles de symboles textuels
+   │  signatures.py       transforme en symboles textuels (binaires, versionnés)
    ▼
 data/signatures/          1867 signatures, une par terme
+   │                      les signatures RETENUES, elles, sont pondérées et reconstruites
+   │                      en mémoire à chaque lancement (variantes_signatures.py)
    │  grasp.py            un arbre par type, fusion des deux nœuds les plus proches
    ▼
 data/modeles/             arbres_somme.json (régénérable par grasp.py, non versionné)
    │  grille.py           compare les configurations en validation croisée, sans test
    │  variantes_signatures.py  compare les signatures en validation croisée, sans test
+   │  ponderation_traits.py    la pondération trait par trait, 10 graines, sans test
    │  evaluation_finale.py / evaluation_signatures.py  lisent le test une fois chacun
    ▼
 data/resultats/           predictions_finales*.json, matrice_confusion_finale*.csv
@@ -146,6 +175,7 @@ du projet** : le code produit des chiffres, les rapports disent ce qu'ils signif
 | `grille.py` | grille de configurations en validation croisée, ne lit pas le test |
 | `evaluation_finale.py` | évaluation de la configuration retenue, lit le test une fois |
 | `variantes_signatures.py` | variantes de construction des signatures (hyperonymes, pondération, TRT/SST) en validation croisée, ne lit pas le test |
+| `ponderation_traits.py` | ce que chaque trait pondéré apporte seul : 10 graines, test de Wilcoxon apparié, ne lit pas le test. Éclairage, pas règle de choix |
 | `evaluation_signatures.py` | évaluation finale des signatures retenues, lit le test une fois |
 | `predire.py` | prédiction expliquée d'un syntagme quelconque, avec les signatures retenues |
 | `rejouer.py` | relance la chaîne dans l'ordre après un changement de `config.py` |

@@ -5,6 +5,7 @@ Configuration figée en validation croisée, évaluée une seule fois sur les 45
 ## 1. Configuration et protocole
 
 - **Configuration** : `somme` · `arbre` · `descente`, choisie en validation croisée (`rapport_grille.md`). Aucune configuration de contrôle n'est évaluée ici.
+- **Signatures : les BINAIRES**, celles de `data/signatures/` (`H 20 · binaire · T0 · TRT tous · SST toutes`) — chaque symbole présent vaut 1. Ce rapport évalue **cette seule représentation** sur le test. Les signatures **pondérées**, retenues depuis en validation croisée (`rapport_signatures_variantes.md`), sont évaluées sur le même test dans `rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2 et la pondération est décrite dans `rapport_ponderation.md`.
 - **Arbres** : quinze, un par type, réappris sur les 750 exemples d'entraînement ; un nœud fusionné est la somme des vecteurs de comptes de ses enfants. Lien de construction : minimum des deux côtés.
 - **Classification** : descente depuis la racine de chaque arbre, vers le meilleur enfant tant qu'il fait **strictement** mieux ; le meilleur nœud d'arrêt sur les quinze arbres donne le type. Score : formule 3, moyenne des deux côtés.
 - **Test** : 450 exemples, 30 par type, **lus une seule fois**. Classement en 0,26 s. Ce rapport se reconstruit depuis `data/resultats/predictions_finales.json` sans relire le test.
@@ -14,12 +15,15 @@ Configuration figée en validation croisée, évaluée une seule fois sur les 45
 
 **F1 macro : 0,753** (précision 0,757, rappel 0,756, exactitude 75,6 %, 340 exemples justes sur 450).
 
-|  | F1 macro | écart avec la descente somme |
+|  | F1 macro sur les 450 exemples de test | écart avec ce rapport |
 |---|---|---|
-| **somme · arbre · descente** | **0,753** | — |
+| **somme · arbre · descente, signatures binaires** (ce rapport) | **0,753** | — |
+| mêmes arbres, **signatures pondérées** (`rapport_final_signatures.md`) | 0,778 | −0,025 |
 | article | 0,772 | −0,019 |
 | méthode à seuil | 0,597 | +0,156 |
 | plus proche voisin | 0,585 | +0,168 |
+
+Les deux premières lignes sont la **même méthode** (somme · arbre · descente) sur le **même test**, et ne diffèrent que par la construction des signatures : binaire ici, pondérée par les poids de JDM là. L'écart, 0,025, est le gain de la pondération ; le test des signes y donnait p = 0,27, donc il n'est pas établi au seuil usuel.
 
 ### 2.1 Détail par type
 

@@ -4,6 +4,10 @@ data/cache/
 # Journal des appels réseau
 logs/
 
+# Arbres appris : régénérables par grasp.py depuis l'entraînement seul, en 0,5 s.
+# Le README les annonce « non versionnés » ; cette ligne le rend vrai.
+data/modeles/
+
 # Python
 __pycache__/
 *.py[cod]

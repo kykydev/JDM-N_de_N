@@ -5,6 +5,17 @@ représenté par l'ensemble de tous les symboles de ses exemples ; le
 cosinus pénalise alors les gros nœuds pour leur seule taille, et la
 descente part systématiquement vers le plus petit enfant.
 
+> **Note sur les poids.** Les exemples de ce document raisonnent sur des
+> ensembles de symboles, donc sur des feuilles à 1. C'est un schéma
+> pédagogique, et il suffit à comprendre pourquoi cette méthode a été
+> écartée. Mais **la configuration finale du projet n'utilise plus de
+> feuilles binaires** : chaque symbole y porte un poids réel tiré de la
+> collecte JDM (H et SST par le poids de la relation, TRT par
+> `log(1 + effectif)`, normalisés par terme). Cette pondération a été
+> mesurée sur la méthode retenue, jamais sur celle-ci, qui reste
+> écartée. Voir `rapport_ponderation.md` et
+> `rapport_signatures_variantes.md`.
+
 > Les chiffres des exemples ci-dessous sont simplifiés pour se suivre à
 > la main. Les chiffres réels sont dans `rapport_arbres.md` et
 > `rapport_grille.md`. La méthode retenue est expliquée dans

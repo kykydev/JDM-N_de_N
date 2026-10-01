@@ -274,6 +274,26 @@ FICHIER_MESURES_VARIANTES = DOSSIER_SIGNATURES_VARIANTES / "mesures_cv.json"
 FICHIER_RAPPORT_VARIANTES = DOSSIER_RAPPORTS / "rapport_signatures_variantes.md"
 
 # ---------------------------------------------------------------------------
+# Test complémentaire de la pondération par trait (src/ponderation_traits.py)
+# ---------------------------------------------------------------------------
+#
+# Éclairage sur le §3.1 du rapport des variantes, PAS une règle de choix : la
+# configuration retenue reste SIGNATURES_RETENUES, décidée à l'étape 1 avant toute
+# lecture du test. Dix graines au lieu de trois, et un test apparié sur la moyenne par
+# graine : les 5 plis d'une graine rebattent les mêmes 750 exemples, donc les traiter
+# comme 15 mesures indépendantes surestime la précision. Une graine = un découpage
+# complet, et les moyennes par graine sont échangeables sous l'hypothèse nulle.
+
+GRAINES_PONDERATION = tuple(range(42, 52))
+
+# Les cinq configurations comparées, à H_TOP et terme T2 : la référence binaire, les
+# trois pondérations partielles, puis les trois traits ensemble.
+PONDERATIONS_COMPAREES = ("binaire", "jdm_H", "jdm_TRT", "jdm_SST", "jdm")
+
+FICHIER_MESURES_PONDERATION = DOSSIER_SIGNATURES_VARIANTES / "mesures_ponderation.json"
+FICHIER_RAPPORT_PONDERATION = DOSSIER_RAPPORTS / "rapport_ponderation.md"
+
+# ---------------------------------------------------------------------------
 # Signatures retenues par la validation croisée (src/evaluation_signatures.py)
 # ---------------------------------------------------------------------------
 #

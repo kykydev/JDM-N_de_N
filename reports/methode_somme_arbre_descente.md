@@ -5,6 +5,18 @@ moyen de ses exemples, et un syntagme est rangé dans le type dont le
 profil lui ressemble le plus ; l'arbre ne sert qu'à aller chercher le
 profil d'une sous-famille quand un type est hétérogène.
 
+> **Note sur les poids.** Les exemples de ce document montrent des
+> feuilles à 1 : un symbole présent vaut 1, absent vaut 0. C'est un
+> schéma pédagogique, et il reste exact pour la *structure* — somme aux
+> nœuds, descente, formule 3. Mais **la configuration finale du projet
+> n'utilise plus de feuilles binaires** : chaque symbole y porte un
+> poids réel tiré de la collecte JDM (H et SST par le poids de la
+> relation, TRT par `log(1 + effectif)`, normalisés par terme). Rien de
+> ce qui est décrit ici ne change pour autant — un vecteur de poids
+> réels s'additionne et se compare au cosinus exactement comme un
+> vecteur de 1. Voir `rapport_ponderation.md` pour la pondération et ce
+> qu'elle apporte, `rapport_signatures_variantes.md` pour le choix.
+
 > Les chiffres des exemples ci-dessous sont simplifiés pour se suivre à
 > la main. Les chiffres réels sont dans `rapport_grille.md` et
 > `rapport_final.md`. La méthode écartée est expliquée dans
