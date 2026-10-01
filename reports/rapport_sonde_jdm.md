@@ -1,5 +1,7 @@
 # Sonde JDM : 30 termes
 
+> **`src/jdm_probe.py` a été retiré au commit `e64f2bd`** : ce rapport n'est plus régénérable et ne doit pas être édité pour suivre le code. (`main.py`, cité au §3, n'a jamais fait partie de ce dépôt.)
+
 Généré par `src/jdm_probe.py`. API : `https://jdm-api.demo.lirmm.fr/v0`. Seules les relations de poids ≤ 0 (niées dans JDM) sont écartées ; aucun seuil n'est appliqué. Les latences sont celles des appels réseau réels, conservées dans le cache.
 
 ## 0. Endpoints de l'API (lus sur /schema)
