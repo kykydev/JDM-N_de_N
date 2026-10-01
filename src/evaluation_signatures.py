@@ -283,18 +283,15 @@ def section_lecture(nouvelle, actuelle, validation_brute, diff):
     ecart = nouvelle["f1"] - actuelle["f1"]
     corriges, casses = len(diff["corriges"]), len(diff["casses"])
     p_signes = p_test_des_signes(corriges, casses)
-    gain_cv, ecart_cv = validation_brute["gain"], validation_brute["ecart"]
+    gain_cv = validation_brute["gain"]
     lignes = ["## 5. Lecture", ""]
+    # L'écart de test n'est PAS comparé à l'écart-type des différences appariées de la
+    # validation croisée : cet écart-type décrit la dispersion de 15 mesures entre plis
+    # d'entraînement, il ne dit rien de l'incertitude d'une mesure unique sur 450 exemples
+    # de test. Le seul juge du gain de test est ici le test des signes, plus bas.
     if ecart <= 0:
         lignes.append(f"- **Aucun gain sur le test** : {ecart_signe(ecart)} de F1. La "
                       "validation croisée annonçait un gain qui ne se retrouve pas.")
-    elif ecart < ecart_cv:
-        lignes.append(f"- Le gain sur le test, {ecart_signe(ecart)}, est **plus petit que "
-                      f"l'écart-type** ({fr(ecart_cv)}) des différences appariées de la validation "
-                      f"croisée : il n'est pas distinguable du bruit.")
-    else:
-        lignes.append(f"- Le gain sur le test, {ecart_signe(ecart)}, dépasse l'écart-type "
-                      f"({fr(ecart_cv)}) des différences appariées de la validation croisée.")
     lignes += [f"- La validation croisée annonçait {fr(gain_cv)} de gain moyen : le test "
                f"donne {fr(ecart)}. " + (
                    "Il est dans le même sens et du même ordre de grandeur."

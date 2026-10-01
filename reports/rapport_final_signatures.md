@@ -92,7 +92,6 @@ Sur 450 exemples : **39 corrigés** (faux avant, justes maintenant), **29 cassé
 
 ## 5. Lecture
 
-- Le gain sur le test, +0,025, dépasse l'écart-type (0,023) des différences appariées de la validation croisée.
 - La validation croisée annonçait 0,033 de gain moyen : le test donne 0,025. Il est dans le même sens et du même ordre de grandeur.
 - **Test des signes sur les exemples dont la justesse change** : 39 corrigés contre 29 cassés, soit 68 exemples discordants sur 450. Probabilité d'un déséquilibre au moins aussi grand sous un simple hasard : **0,27**. Le gain n'est pas établi au sens statistique usuel (seuil de 0,05) : il va dans le sens de la validation croisée sans le prouver.
 - Un écart de 0,01 de F1 sur 450 exemples tient à quelques exemples ; le F1 de test de chaque configuration est lui-même une estimation, sans intervalle ici.

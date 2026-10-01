@@ -45,21 +45,29 @@ pas une différence à cette taille de test : on peut dire « au niveau de l'art
 types sur quinze dépassent son F1, dont `r_has_property-1` (0,98 contre 0,59), qui est son
 pire type ; les plus en retrait sont `r_depict`, `r_product_of` et `r_holo`.
 
-Trois réserves, détaillées dans `reports/rapport_final.md` et
+Quatre réserves, détaillées dans `reports/rapport_final.md` et
 `reports/rapport_final_signatures.md` :
 
 - **Le gain vient de la représentation, pas de l'arbre.** Comparer l'exemple aux seuls
-  quinze profils de racine donne le même F1 en validation croisée (0,783). La moitié des
-  prédictions se fait à la racine et le nœud gagnant couvre en moyenne 97 % de son type.
-- **Le gain des signatures retenues n'est pas établi, et il mêle deux changements.** Les
-  deux configurations de test diffèrent à la fois par les poids (`binaire` → `jdm`) et par
-  le symbole du terme (`T0` présent → `T2` retiré) : les +0,025 de F1 sur le test sont donc
-  l'effet des **signatures retenues dans leur ensemble**, pas celui de la seule
-  pondération. Sur les 68 exemples dont la justesse change (39 corrigés, 29 cassés), un
-  test des signes donne **p = 0,27**. En validation croisée, à référence *binaire T2* — donc
-  le terme déjà retiré de part et d'autre, ce qui isole les poids — l'écart apparié est
-  **+0,030 ± 0,028** sur 3 graines (15 plis) et **+0,028** sur 10 graines (p = 0,002). Le
-  retrait du terme, lui, ne pèse rien de mesurable : +0,003 ± 0,011, sous son écart-type.
+  quinze profils de racine donne le même F1 en validation croisée (0,783). Les prédictions
+  se font à la racine dans **50,9 %** des cas avec les signatures binaires et **43,6 %**
+  avec les signatures retenues ; dans les deux cas le nœud gagnant couvre en moyenne 97 %
+  des exemples de son type. Les arbres sont des peignes, et descendre n'y retire que
+  quelques feuilles du profil — voir
+  [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) §3 et §4.
+- **Le gain des signatures retenues n'est pas établi, et il mêle deux changements.**
+  +0,025 de F1 sur le test, +0,033 annoncé par la validation croisée (0,819 contre 0,786,
+  sur les mêmes 15 mesures) ; mais sur les 68 exemples dont la justesse change (39
+  corrigés, 29 cassés), un test des signes donne **p = 0,27**. Et ce gain additionne deux
+  réglages, car les signatures retenues changent à la fois les poids (`binaire` → `jdm`)
+  et le symbole du terme (`T0` présent → `T2` retiré) : le retrait du terme vaut
+  **+0,003 ± 0,011**, sous son écart-type, et la pondération **+0,030 ± 0,028** (+0,028 sur
+  dix graines, p = 0,002). L'écart de test, lui, ne sépare pas les deux.
+- **La pondération casse presque autant qu'elle corrige.** Sur les 450 exemples de test,
+  **39 corrigés contre 29 cassés** — solde net de 10. **Cinq types sur quinze reculent**
+  (`r_depict`, `r_has_causatif`, `r_social_tie`, `r_own-1`, `r_processus_agent`), et
+  `r_depict` devient un **aimant** : 37 prédictions pour 30 attendus, son F1 tombant de
+  0,61 à 0,54. Le gain macro de 0,025 est donc un solde, pas une amélioration uniforme.
 - **L'hypothèse de polysémie n'est pas confirmée.** La part des erreurs attribuées à la
   polysémie tombe de 57,8 % à 20,9 %, mais c'est un résidu de l'ordre de priorité des
   causes ; l'écart de taux d'erreur entre exemples polysémiques et autres ne se resserre
@@ -128,11 +136,10 @@ de version allégée de la pondération à en tirer.
 | Pondération trait par trait, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée, 10 graines) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
 | **Somme · arbre · descente, signatures retenues `jdm · T2`** | **0,778** (test), 0,819 (validation croisée, 3 graines) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
 
-Les F1 de validation croisée ne sont comparables qu'à **nombre de graines égal** : les
-moyennes sur 3 graines (15 plis) et sur 10 graines ne portent pas sur les mêmes
-découpages, et la référence binaire vaut 0,786 dans les deux cas par coïncidence —
-`binaire · T0` sur 3 graines, `binaire · T2` sur 10. Les seuls écarts qui se lisent sont
-les **écarts appariés** à l'intérieur d'une même étude.
+Les F1 de validation croisée ne se comparent qu'à **nombre de graines égal**, et seuls les
+**écarts appariés** à l'intérieur d'une même étude ont un sens : 0,819 contre 0,786 sur les
+mêmes 15 mesures donne +0,033, et c'est cet écart-là qui se lit, pas la différence de deux
+moyennes prises dans deux tableaux différents.
 
 Les Expériences 1 à 3 de l'article (traits, définitude, élagage) ont été menées avec
 l'apprentissage à seuil puis avec l'union · arbre · descente ; elles n'ont pas été

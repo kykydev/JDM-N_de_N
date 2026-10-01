@@ -112,16 +112,19 @@ le type en sous-familles — le partage « 46 exemples / 4 exemples » du
 obtenue.** En représentation somme, le cosinus ne pénalise pas un nœud
 pour sa taille : à chaque tour, la fusion la plus attirante est donc
 celle du gros nœud avec *une feuille de plus*. Les quinze arbres sont
-des **peignes** — profondeur 47 à 49 pour 50 exemples, là où un arbre
-équilibré ferait 6.
+des **peignes** : pour 50 exemples, la grosse branche est longue de 35 à
+48 pas avec les signatures retenues (47 à 49 avec les binaires), là où
+un arbre équilibré ferait 6.
 
-À la racine, les deux enfants pèsent 49 et 1 dans **14 arbres sur 15**
-(48 et 2 dans le quinzième). Et cela se répète à chaque niveau : le
-gros enfant a un exemple de moins que son parent.
+À la racine, les deux enfants pèsent 49 et 1 dans **les 15 arbres** de
+la configuration retenue (14 sur 15 avec les signatures binaires, 48 et
+2 dans le quinzième). Et cela se répète à chaque niveau : le gros
+enfant a un exemple de moins que son parent.
 
 | profondeur le long de la grosse branche | 1 | 2 | 3 | 6 |
 |---|---|---|---|---|
-| poids moyen du nœud | 48,9 | 47,8 | 46,6 | 43,5 |
+| poids moyen du nœud, signatures retenues | 49,0 | 48,0 | 46,9 | 43,7 |
+| poids moyen du nœud, signatures binaires | 48,9 | 47,8 | 46,6 | 43,5 |
 | `50 − profondeur` | 49 | 48 | 47 | 44 |
 
 Le poids d'un nœud vaut donc **à peu près `50 − profondeur`**. Il n'y a
@@ -140,16 +143,19 @@ du syntagme à classer, les retirer rapproche le profil ; la descente
 s'arrête dès qu'un pas de plus n'y gagne rien. C'est un **ajustement
 marginal du profil**, pas la recherche du bon niveau de généralité.
 
-Les chiffres mesurés le disent sans ambiguïté :
+Les chiffres mesurés sur le test le disent sans ambiguïté. Ceux de la
+**configuration retenue** (signatures pondérées) d'abord, ceux des
+signatures binaires entre parenthèses :
 
-- **50,9 %** des prédictions s'arrêtent à la racine, c'est-à-dire sur
-  le profil complet du type, sans rien retirer.
-- **Profondeur d'arrêt moyenne : 1,0.** En moyenne, une feuille
-  retirée.
-- **Poids relatif du nœud gagnant : 0,97** — le nœud qui décide couvre
-  97 % des exemples de son type.
-- **66,0 calculs de score par exemple** : quinze racines, leurs trente
-  enfants, et quelques pas de plus ici ou là.
+- **43,6 %** des prédictions s'arrêtent à la racine (50,9 %),
+  c'est-à-dire sur le profil complet du type, sans rien retirer.
+- **Profondeur d'arrêt moyenne : 1,33** (1,02). En moyenne, une à deux
+  feuilles retirées.
+- **Poids relatif du nœud gagnant : 0,97** (0,97) — le nœud qui décide
+  couvre 97 % des exemples de son type. C'est le chiffre décisif : même
+  quand la descente bouge, elle ne descend presque pas.
+- **70,5 calculs de score par exemple** (66,0) : quinze racines, leurs
+  trente enfants, et quelques pas de plus ici ou là.
 
 Autrement dit, la prédiction se joue presque toujours sur les quinze
 profils de type, l'arbre ne servant qu'à en rogner les bords. C'est
