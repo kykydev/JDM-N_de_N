@@ -2,8 +2,9 @@
 
 **En une phrase** : chaque type de relation est résumé par un profil
 moyen de ses exemples, et un syntagme est rangé dans le type dont le
-profil lui ressemble le plus ; l'arbre ne sert qu'à aller chercher le
-profil d'une sous-famille quand un type est hétérogène.
+profil lui ressemble le plus ; l'arbre ne sert qu'à retirer de ce
+profil les quelques exemples qui l'en éloignent (§3 et §4 : les arbres
+obtenus sont des peignes, pas des hiérarchies de sous-familles).
 
 > **Note sur les poids.** Les exemples de ce document montrent des
 > feuilles à 1 : un symbole présent vaut 1, absent vaut 0. C'est un
@@ -103,49 +104,58 @@ racine            0,64
 
 Aucun enfant ne fait mieux : arrêt à la racine. Prédiction : Matière.
 
-## 3. Ce qui se passe dans la plupart des cas
+## 3. La forme réelle des arbres : des peignes
 
-La racine résume tous les exemples du type ; un enfant n'en résume
-qu'une partie, son profil est donc plus bruité. Face à un exemple
-ordinaire, le profil complet gagne.
+Les schémas des §1 et §2 suggèrent un arbre équilibré, qui séparerait
+le type en sous-familles — le partage « 46 exemples / 4 exemples » du
+§2 en est une simplification commode. **Ce n'est pas la forme
+obtenue.** En représentation somme, le cosinus ne pénalise pas un nœud
+pour sa taille : à chaque tour, la fusion la plus attirante est donc
+celle du gros nœud avec *une feuille de plus*. Les quinze arbres sont
+des **peignes** — profondeur 47 à 49 pour 50 exemples, là où un arbre
+équilibré ferait 6.
 
-Nuance : dans 9 arbres sur 15, la racine a pour petit enfant un
-**isolat**, l'exemple que le type n'a su rapprocher de personne. Le
-gros enfant couvre alors 49 exemples sur 50 : c'est la racine moins
-l'intrus, un profil très légèrement plus propre. La descente y entre
-souvent, fait un pas, et s'arrête.
+À la racine, les deux enfants pèsent 49 et 1 dans **14 arbres sur 15**
+(48 et 2 dans le quinzième). Et cela se répète à chaque niveau : le
+gros enfant a un exemple de moins que son parent.
 
-D'où les chiffres observés : 50,9 % des prédictions viennent
-d'une racine, et le nœud gagnant couvre en moyenne 97 % de
-son type. Nombre moyen de calculs par exemple : 66,0 —
-quinze racines, trente enfants au premier niveau, quelques pas de plus
-ailleurs.
+| profondeur le long de la grosse branche | 1 | 2 | 3 | 6 |
+|---|---|---|---|---|
+| poids moyen du nœud | 48,9 | 47,8 | 46,6 | 43,5 |
+| `50 − profondeur` | 49 | 48 | 47 | 44 |
 
-L'isolat, lui, ne gagne plus : c'est une feuille chargée de ses propres
-particularités, face à un profil qui n'est plus pénalisé pour sa
-taille. Il ne l'emporte que si l'exemple lui ressemble presque
-exactement.
+Le poids d'un nœud vaut donc **à peu près `50 − profondeur`**. Il n'y a
+pas de sous-famille dans ces arbres, et pas non plus d'« isolat » à la
+racine : la petite feuille écartée au premier pas n'a rien d'un intrus,
+c'est simplement celle que l'ordre des fusions a laissée pour la fin.
 
-## 4. Quand la descente va plus bas
+**Conséquence, et c'est tout le §4 :** descendre d'un pas ne fait pas
+passer à un groupe, cela **retire quelques feuilles du profil du
+type**. Le nœud à la profondeur *k*, c'est le type moins *k* exemples.
 
-Seulement si le type contient une **sous-famille nette** et que
-l'exemple y appartient clairement. Le type Topic mélange de vrais
-thèmes (*livre de cuisine*, *film d'aventure*) et des cas temporels
-(*repas de midi*, *bus de nuit*) ; l'arbre les sépare dès la racine.
+## 4. Ce que la descente fait vraiment
 
-Arrive « dîner du soir » :
+Elle élague. Si quelques exemples du type tirent son profil moyen loin
+du syntagme à classer, les retirer rapproche le profil ; la descente
+s'arrête dès qu'un pas de plus n'y gagne rien. C'est un **ajustement
+marginal du profil**, pas la recherche du bon niveau de généralité.
 
-```
-racine Topic               0,45
-  enfant « temporel »      0,58   mieux, on descend
-    petit-enfant A         0,53
-    petit-enfant B         0,50
-    arrêt : réponse « temporel »
-```
+Les chiffres mesurés le disent sans ambiguïté :
 
-Le profil global de Topic est tiré par les thèmes ; celui de la
-sous-famille temporelle colle. La descente trouve le bon niveau de
-généralité.
+- **50,9 %** des prédictions s'arrêtent à la racine, c'est-à-dire sur
+  le profil complet du type, sans rien retirer.
+- **Profondeur d'arrêt moyenne : 1,0.** En moyenne, une feuille
+  retirée.
+- **Poids relatif du nœud gagnant : 0,97** — le nœud qui décide couvre
+  97 % des exemples de son type.
+- **66,0 calculs de score par exemple** : quinze racines, leurs trente
+  enfants, et quelques pas de plus ici ou là.
+
+Autrement dit, la prédiction se joue presque toujours sur les quinze
+profils de type, l'arbre ne servant qu'à en rogner les bords. C'est
+cohérent avec ce que mesure la validation croisée : s'en tenir aux
+quinze racines, sans aucune descente, donne le même F1 (0,783 contre
+0,784). **Le gain vient de la représentation, pas de la structure.**
 
 ## 5. Pourquoi ça marche aussi bien
 
@@ -161,5 +171,12 @@ atteint 0,78.
 
 ## 6. Résultat sur le test
 
-F1 macro : 0,753. Détail par type et analyse des erreurs :
-`rapport_final.md`.
+F1 macro **0,753** avec les signatures **binaires** (`binaire · T0`),
+celles que décrivent les exemples de ce document : détail par type et
+analyse des erreurs dans `rapport_final.md`.
+
+Avec les **signatures retenues** (`jdm · T2`, les feuilles pondérées de
+la note en tête), même méthode et même test : **0,778**, dans
+`rapport_final_signatures.md`. Les deux configurations diffèrent par
+deux réglages à la fois — les poids et le retrait du symbole du terme —
+donc l'écart de 0,025 ne s'attribue pas à la seule pondération.

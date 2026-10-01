@@ -6,11 +6,24 @@ invalide tout ce qui suit. Relancer les étapes une par une marche, mais dans le
 on évalue des signatures neuves avec un modèle périmé, sans que rien ne le signale. Ce
 script impose l'ordre.
 
-    signatures.py  ->  grasp.py  ->  grille.py  ->  evaluation_finale.py
+    signatures.py  ->  grasp.py  ->  grille.py  ->  variantes_signatures.py
+                   ->  ponderation_traits.py  ->  evaluation_finale.py
+                   ->  evaluation_signatures.py
+
+Les DEUX évaluations finales sont dans la chaîne, parce qu'il y a deux jeux de signatures
+à évaluer : `evaluation_finale.py` lit les signatures binaires de `data/signatures/`,
+`evaluation_signatures.py` reconstruit les signatures pondérées retenues. Toutes deux
+LISENT le test.
 
 La collecte n'est PAS rejouée : elle stocke les traits bruts, sans coupure ni filtre, et
-ne dépend d'aucun des paramètres réglables. Aucun appel réseau, donc, et moins d'une
-minute en tout.
+ne dépend d'aucun des paramètres réglables. Aucun appel réseau, donc.
+
+DURÉE. Les trois premières étapes tiennent en moins d'une minute. Les deux études en
+validation croisée, en revanche, mettent en cache leurs mesures sous une clé qui contient
+les paramètres de représentation : changer H_TOP ou TRT_POLITIQUE invalide ce cache et les
+oblige à tout recalculer, soit une dizaine de minutes en séquentiel. C'est le prix de la
+cohérence, et c'est voulu : un rapport de validation croisée périmé est plus nuisible
+qu'une attente.
 
 AVERTISSEMENT DE MÉTHODE. La méthode retenue n'a aucun seuil, mais config.py garde des
 paramètres de représentation (H_TOP, TRT_POLITIQUE…). `evaluation_finale.py` LIT le
@@ -31,12 +44,21 @@ import time
 import config
 
 
-# Les quatre étapes, dans l'ordre où elles doivent tourner.
+# Les étapes, dans l'ordre où elles doivent tourner. Le dernier champ dit si l'étape LIT
+# le test : `--sans-test` ne garde que celles qui ne le lisent pas, et il y en a deux qui
+# le lisent, une par jeu de signatures.
 ETAPES = [
-    ("signatures.py", "reconstruit les 1867 signatures depuis la collecte"),
-    ("grasp.py", "reconstruit les quinze arbres de la configuration par défaut"),
-    ("grille.py", "compare toutes les configurations en validation croisée, sans test"),
-    ("evaluation_finale.py", "réapprend sur les 750 exemples et LIT le test"),
+    ("signatures.py", "reconstruit les 1867 signatures binaires depuis la collecte", False),
+    ("grasp.py", "reconstruit les quinze arbres de la configuration par défaut", False),
+    ("grille.py", "compare toutes les configurations en validation croisée, sans test", False),
+    ("variantes_signatures.py",
+     "compare les variantes de signatures en validation croisée, sans test", False),
+    ("ponderation_traits.py",
+     "pondération trait par trait, dix graines, Wilcoxon, sans test", False),
+    ("evaluation_finale.py",
+     "réapprend sur les 750 exemples et LIT le test — signatures binaires", True),
+    ("evaluation_signatures.py",
+     "même chose avec les signatures pondérées retenues, LIT le test", True),
 ]
 
 
@@ -63,7 +85,10 @@ def lancer(script):
 
 
 def lire_score():
-    """Relit le F1 de test de la descente. Retourne un flottant ou None."""
+    """Relit le F1 de test des signatures BINAIRES. Retourne un flottant ou None.
+
+    Celui des signatures pondérées retenues est dans FICHIER_PREDICTIONS_SIGNATURES ; le
+    bilan n'en suit qu'un, pour rester lisible."""
     chemin_test = config.FICHIER_PREDICTIONS_FINALES
     if not chemin_test.exists():
         return None
@@ -118,9 +143,9 @@ def main():
     afficher_parametres()
     avant = lire_score()
 
-    etapes = ETAPES[:-1] if options.sans_test else ETAPES
+    etapes = [e for e in ETAPES if not e[2]] if options.sans_test else ETAPES
     durees = {}
-    for numero, (script, role) in enumerate(etapes, 1):
+    for numero, (script, role, _lit_le_test) in enumerate(etapes, 1):
         print(f"\n[{numero}/{len(etapes)}] {script} — {role}")
         print("-" * 66)
         succes, duree = lancer(script)
@@ -132,7 +157,8 @@ def main():
 
     afficher_bilan(avant, lire_score(), durees)
     if options.sans_test:
-        print("    evaluation_finale.py n'a pas été lancé : le F1 affiché est l'ancien.")
+        sautees = ", ".join(script for script, _, lit in ETAPES if lit)
+        print(f"    Non lancées : {sautees}. Le F1 affiché est l'ancien.")
     return 0
 
 

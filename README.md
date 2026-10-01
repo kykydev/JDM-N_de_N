@@ -32,8 +32,8 @@ test.
 
 | | F1 macro |
 |---|---|
-| **somme · arbre · descente, signatures retenues — test** | **0,778** |
-| somme · arbre · descente, signatures initiales — test | 0,753 |
+| **somme · arbre · descente, signatures retenues (`jdm · T2`) — test** | **0,778** |
+| somme · arbre · descente, signatures binaires (`binaire · T0`) — test | 0,753 |
 | article | 0,772 |
 | apprentissage à seuil + classification exhaustive — test | 0,597 |
 | plus proche voisin sur les feuilles — test | 0,585 |
@@ -51,13 +51,24 @@ Trois réserves, détaillées dans `reports/rapport_final.md` et
 - **Le gain vient de la représentation, pas de l'arbre.** Comparer l'exemple aux seuls
   quinze profils de racine donne le même F1 en validation croisée (0,783). La moitié des
   prédictions se fait à la racine et le nœud gagnant couvre en moyenne 97 % de son type.
-- **Le gain des signatures retenues n'est pas établi.** +0,025 de F1 sur le test, +0,033
-  annoncé par la validation croisée ; mais sur les 68 exemples dont la justesse change
-  (39 corrigés, 29 cassés), un test des signes donne p = 0,27.
+- **Le gain des signatures retenues n'est pas établi, et il mêle deux changements.** Les
+  deux configurations de test diffèrent à la fois par les poids (`binaire` → `jdm`) et par
+  le symbole du terme (`T0` présent → `T2` retiré) : les +0,025 de F1 sur le test sont donc
+  l'effet des **signatures retenues dans leur ensemble**, pas celui de la seule
+  pondération. Sur les 68 exemples dont la justesse change (39 corrigés, 29 cassés), un
+  test des signes donne **p = 0,27**. En validation croisée, à référence *binaire T2* — donc
+  le terme déjà retiré de part et d'autre, ce qui isole les poids — l'écart apparié est
+  **+0,030 ± 0,028** sur 3 graines (15 plis) et **+0,028** sur 10 graines (p = 0,002). Le
+  retrait du terme, lui, ne pèse rien de mesurable : +0,003 ± 0,011, sous son écart-type.
 - **L'hypothèse de polysémie n'est pas confirmée.** La part des erreurs attribuées à la
   polysémie tombe de 57,8 % à 20,9 %, mais c'est un résidu de l'ordre de priorité des
   causes ; l'écart de taux d'erreur entre exemples polysémiques et autres ne se resserre
-  pas (+0,082 contre +0,055).
+  pas (+0,082 contre +0,055). **Ces chiffres-là, comme les 74,5 % de « classe multiple »,
+  viennent de l'évaluation des signatures BINAIRES** (`rapport_final.md`) : l'analyse des
+  causes d'erreur n'a pas été refaite sur les signatures retenues. Et les 74,5 % sont
+  gonflés par construction : « classe multiple » se déclenche dès qu'un autre type arrive à
+  5 % relatif du score gagnant, or les scores sont très resserrés — le critère attrape donc
+  des erreurs ordinaires en plus des vraies ambiguïtés.
 
 ## La méthode retenue
 
@@ -97,8 +108,9 @@ Ce que la pondération apporte, trait par trait, et avec quelle confiance :
 [rapport_ponderation.md](reports/rapport_ponderation.md). En résumé, sur dix graines et en
 test de Wilcoxon apparié : les trois traits ensemble gagnent **+0,028** de F1 (p = 0,002,
 dix graines favorables sur dix), mais **pris séparément aucun ne vaut cela** — `H` seul
-−0,001, `SST` seul +0,003 (un gain réel mais qui ne survit pas à une correction de
-multiplicité), et `TRT` seul **−0,016**, c'est-à-dire une dégradation franche. La somme des
+−0,001, `SST` seul +0,003 (un gain *nominal* : p = 0,049, qui ne survit pas au seuil de
+Bonferroni de 0,0125 pour quatre comparaisons), et `TRT` seul **−0,016**, c'est-à-dire une
+dégradation franche. La somme des
 trois effets séparés est négative quand leur conjonction est positive : pondérer un seul
 trait déséquilibre la norme du vecteur face aux deux autres restés à 1. Il n'y a donc pas
 de version allégée de la pondération à en tirer.
@@ -111,10 +123,16 @@ de version allégée de la pondération à en tirer.
 | Union · arbre · descente (**écartée**) | 0,219 (test), 0,224 (validation croisée) | [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md), [rapport_arbres.md](reports/rapport_arbres.md) |
 | Plus proche voisin sur les feuilles | 0,585 (test), 0,534 (validation croisée) | [rapport_arbres.md](reports/rapport_arbres.md) |
 | Grille de 61 configurations (représentation × structure × classification) | de 0,224 à 0,784 (validation croisée) | [rapport_grille.md](reports/rapport_grille.md) |
-| Somme · arbre · descente, signatures initiales | 0,753 (test), 0,786 (validation croisée) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) |
-| Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |
-| Pondération trait par trait, 10 graines, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
-| **Somme · arbre · descente, signatures retenues** | **0,778** (test), 0,819 (validation croisée) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
+| Somme · arbre · descente, signatures binaires `binaire · T0` | 0,753 (test), 0,786 (validation croisée, 3 graines) | [rapport_final.md](reports/rapport_final.md), [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) |
+| Variantes de signatures (hyperonymes, pondération, TRT/SST), 27 comparaisons | de 0,642 à 0,819 (validation croisée, 3 graines) | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) |
+| Pondération trait par trait, Wilcoxon apparié | de 0,769 à 0,814 (validation croisée, 10 graines) | [rapport_ponderation.md](reports/rapport_ponderation.md) |
+| **Somme · arbre · descente, signatures retenues `jdm · T2`** | **0,778** (test), 0,819 (validation croisée, 3 graines) | [rapport_final_signatures.md](reports/rapport_final_signatures.md) |
+
+Les F1 de validation croisée ne sont comparables qu'à **nombre de graines égal** : les
+moyennes sur 3 graines (15 plis) et sur 10 graines ne portent pas sur les mêmes
+découpages, et la référence binaire vaut 0,786 dans les deux cas par coïncidence —
+`binaire · T0` sur 3 graines, `binaire · T2` sur 10. Les seuls écarts qui se lisent sont
+les **écarts appariés** à l'intérieur d'une même étude.
 
 Les Expériences 1 à 3 de l'article (traits, définitude, élagage) ont été menées avec
 l'apprentissage à seuil puis avec l'union · arbre · descente ; elles n'ont pas été
@@ -203,12 +221,22 @@ Les réglages sont dans `config.py`. Après un changement (`H_TOP`, `TRT_POLITIQ
 `REPRESENTATION` pour comparer avec l'union) :
 
 ```
-py -3 src/rejouer.py --sans-test   # signatures, arbres, validation croisée
-py -3 src/rejouer.py               # ajoute l'évaluation qui lit le test
+py -3 src/rejouer.py --sans-test   # signatures, arbres, et les trois études en
+                                   # validation croisée — ne lit pas le test
+py -3 src/rejouer.py               # ajoute les DEUX évaluations qui lisent le test
 ```
 
+Les sept étapes, dans l'ordre : `signatures.py`, `grasp.py`, `grille.py`,
+`variantes_signatures.py`, `ponderation_traits.py`, puis les deux qui lisent le test —
+`evaluation_finale.py` (signatures binaires) et `evaluation_signatures.py` (signatures
+retenues). `--sans-test` saute exactement ces deux dernières.
+
 La collecte n'est jamais rejouée : elle stocke les traits bruts, sans coupure, et aucun
-réglage n'en dépend. Aucun appel réseau, une minute environ en tout.
+réglage n'en dépend. Aucun appel réseau. **Compter une dizaine de minutes**, et non une :
+`variantes_signatures.py` et `ponderation_traits.py` mettent leurs mesures en cache sous
+une clé qui contient les paramètres de représentation, donc changer `H_TOP` ou
+`TRT_POLITIQUE` les oblige à tout recalculer. C'est voulu — un rapport de validation
+croisée périmé nuit plus qu'une attente.
 
 ## Discipline expérimentale
 

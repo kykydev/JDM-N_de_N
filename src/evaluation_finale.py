@@ -342,11 +342,19 @@ def section_dispositif(n_test, duree):
             "(`rapport_grille.md`). Aucune configuration de contrôle n'est évaluée ici.",
             "- **Signatures : les BINAIRES**, celles de `data/signatures/` "
             "(`H 20 · binaire · T0 · TRT tous · SST toutes`) — chaque symbole présent "
-            "vaut 1. Ce rapport évalue **cette seule représentation** sur le test. Les "
-            "signatures **pondérées**, retenues depuis en validation croisée "
-            "(`rapport_signatures_variantes.md`), sont évaluées sur le même test dans "
-            "`rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2 et la "
-            "pondération est décrite dans `rapport_ponderation.md`.",
+            "vaut 1, et le terme lui-même figure dans sa signature, sans préfixe. Ce "
+            "rapport évalue **cette seule représentation** sur le test. Les **signatures "
+            "retenues** depuis en validation croisée "
+            "(`H 20 · jdm · T2 · TRT tous · SST toutes`, "
+            "`rapport_signatures_variantes.md`) sont évaluées sur le même test dans "
+            "`rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2.",
+            "- **Attention en comparant les deux** : elles diffèrent par **deux** choses à "
+            "la fois, les poids (`binaire` → `jdm`) et le symbole du terme (`T0` présent "
+            "→ `T2` retiré). L'écart de test ne mesure donc pas « le gain de la "
+            "pondération » mais celui des signatures retenues, poids et retrait du terme "
+            "confondus. La part propre à chaque changement n'a été mesurée qu'en "
+            "validation croisée (`rapport_signatures_variantes.md` §1 pour le terme, "
+            "`rapport_ponderation.md` pour les poids).",
             "- **Arbres** : quinze, un par type, réappris sur les 750 exemples "
             "d'entraînement ; un nœud fusionné est la somme des vecteurs de comptes de "
             "ses enfants. Lien de construction : minimum des deux côtés.",
@@ -370,13 +378,13 @@ def section_resultats(evaluation):
               f"**F1 macro : {fr(f1)}** (précision {fr(evaluation['precision'])}, rappel "
               f"{fr(evaluation['rappel'])}, exactitude {pct(evaluation['exactitude'])}, "
               f"{evaluation['corrects']} exemples justes sur {evaluation['total']}).", ""]
-    corps_macro = [["**somme · arbre · descente, signatures binaires** (ce rapport)",
-                    f"**{fr(f1)}**", "—"]]
+    corps_macro = [["**somme · arbre · descente, signatures binaires** (ce rapport) — "
+                    "`binaire · T0`", f"**{fr(f1)}**", "—"]]
     f1_pondere = f1_signatures_ponderees()
     if f1_pondere is not None:
-        corps_macro.append(["mêmes arbres, **signatures pondérées** "
-                            "(`rapport_final_signatures.md`)", fr(f1_pondere),
-                            ecart_signe(f1 - f1_pondere)])
+        corps_macro.append(["mêmes arbres, **signatures retenues** "
+                            "(`rapport_final_signatures.md`) — `jdm · T2`",
+                            fr(f1_pondere), ecart_signe(f1 - f1_pondere)])
     corps_macro += [["article", fr(F1_ARTICLE), ecart_signe(f1 - F1_ARTICLE)],
                     ["méthode à seuil", fr(F1_SEUIL), ecart_signe(f1 - F1_SEUIL)],
                     ["plus proche voisin", fr(F1_VOISIN), ecart_signe(f1 - F1_VOISIN)]]
@@ -385,10 +393,13 @@ def section_resultats(evaluation):
     if f1_pondere is not None:
         lignes += ["", "Les deux premières lignes sont la **même méthode** "
                    "(somme · arbre · descente) sur le **même test**, et ne diffèrent que "
-                   "par la construction des signatures : binaire ici, pondérée par les "
-                   f"poids de JDM là. L'écart, {fr(abs(f1_pondere - f1))}, est le gain de "
-                   "la pondération ; le test des signes y donnait p = 0,27, donc il n'est "
-                   "pas établi au seuil usuel."]
+                   "par la construction des signatures. Mais elles en diffèrent par "
+                   "**deux** réglages à la fois : les poids (`binaire` → `jdm`) et le "
+                   "symbole du terme (`T0` → `T2`). L'écart, "
+                   f"{fr(abs(f1_pondere - f1))}, est donc celui des **signatures "
+                   "retenues — poids et retrait du terme confondus** — et non celui de la "
+                   "seule pondération. Il n'est pas non plus établi : le test des signes "
+                   "y donnait p = 0,27."]
     corps = []
     for rt in sorted(evaluation["par_type"], key=lambda t: -evaluation["par_type"][t]["f1"]):
         d = evaluation["par_type"][rt]

@@ -5,7 +5,8 @@ Configuration figée en validation croisée, évaluée une seule fois sur les 45
 ## 1. Configuration et protocole
 
 - **Configuration** : `somme` · `arbre` · `descente`, choisie en validation croisée (`rapport_grille.md`). Aucune configuration de contrôle n'est évaluée ici.
-- **Signatures : les BINAIRES**, celles de `data/signatures/` (`H 20 · binaire · T0 · TRT tous · SST toutes`) — chaque symbole présent vaut 1. Ce rapport évalue **cette seule représentation** sur le test. Les signatures **pondérées**, retenues depuis en validation croisée (`rapport_signatures_variantes.md`), sont évaluées sur le même test dans `rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2 et la pondération est décrite dans `rapport_ponderation.md`.
+- **Signatures : les BINAIRES**, celles de `data/signatures/` (`H 20 · binaire · T0 · TRT tous · SST toutes`) — chaque symbole présent vaut 1, et le terme lui-même figure dans sa signature, sans préfixe. Ce rapport évalue **cette seule représentation** sur le test. Les **signatures retenues** depuis en validation croisée (`H 20 · jdm · T2 · TRT tous · SST toutes`, `rapport_signatures_variantes.md`) sont évaluées sur le même test dans `rapport_final_signatures.md` ; les deux F1 sont mis en regard au §2.
+- **Attention en comparant les deux** : elles diffèrent par **deux** choses à la fois, les poids (`binaire` → `jdm`) et le symbole du terme (`T0` présent → `T2` retiré). L'écart de test ne mesure donc pas « le gain de la pondération » mais celui des signatures retenues, poids et retrait du terme confondus. La part propre à chaque changement n'a été mesurée qu'en validation croisée (`rapport_signatures_variantes.md` §1 pour le terme, `rapport_ponderation.md` pour les poids).
 - **Arbres** : quinze, un par type, réappris sur les 750 exemples d'entraînement ; un nœud fusionné est la somme des vecteurs de comptes de ses enfants. Lien de construction : minimum des deux côtés.
 - **Classification** : descente depuis la racine de chaque arbre, vers le meilleur enfant tant qu'il fait **strictement** mieux ; le meilleur nœud d'arrêt sur les quinze arbres donne le type. Score : formule 3, moyenne des deux côtés.
 - **Test** : 450 exemples, 30 par type, **lus une seule fois**. Classement en 0,26 s. Ce rapport se reconstruit depuis `data/resultats/predictions_finales.json` sans relire le test.
@@ -17,13 +18,13 @@ Configuration figée en validation croisée, évaluée une seule fois sur les 45
 
 |  | F1 macro sur les 450 exemples de test | écart avec ce rapport |
 |---|---|---|
-| **somme · arbre · descente, signatures binaires** (ce rapport) | **0,753** | — |
-| mêmes arbres, **signatures pondérées** (`rapport_final_signatures.md`) | 0,778 | −0,025 |
+| **somme · arbre · descente, signatures binaires** (ce rapport) — `binaire · T0` | **0,753** | — |
+| mêmes arbres, **signatures retenues** (`rapport_final_signatures.md`) — `jdm · T2` | 0,778 | −0,025 |
 | article | 0,772 | −0,019 |
 | méthode à seuil | 0,597 | +0,156 |
 | plus proche voisin | 0,585 | +0,168 |
 
-Les deux premières lignes sont la **même méthode** (somme · arbre · descente) sur le **même test**, et ne diffèrent que par la construction des signatures : binaire ici, pondérée par les poids de JDM là. L'écart, 0,025, est le gain de la pondération ; le test des signes y donnait p = 0,27, donc il n'est pas établi au seuil usuel.
+Les deux premières lignes sont la **même méthode** (somme · arbre · descente) sur le **même test**, et ne diffèrent que par la construction des signatures. Mais elles en diffèrent par **deux** réglages à la fois : les poids (`binaire` → `jdm`) et le symbole du terme (`T0` → `T2`). L'écart, 0,025, est donc celui des **signatures retenues — poids et retrait du terme confondus** — et non celui de la seule pondération. Il n'est pas non plus établi : le test des signes y donnait p = 0,27.
 
 ### 2.1 Détail par type
 

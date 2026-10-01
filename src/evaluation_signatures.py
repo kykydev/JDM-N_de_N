@@ -188,7 +188,16 @@ def section_resultats(nouvelle, actuelle, validation):
          ["plus proche voisin", fr(ef.F1_VOISIN), "—", "—"]])
     lignes += ["", f"Écart entre les deux jeux de signatures : "
                    f"**{ecart_signe(f1_n - f1_a)}** de F1 sur le test ; la validation "
-                   f"croisée annonçait {validation['gain']}.", ""]
+                   f"croisée annonçait {validation['gain']}.", "",
+               "**Cet écart mêle deux changements.** Les signatures retenues diffèrent "
+               "des initiales par les poids (`binaire` → `jdm`) *et* par le symbole du "
+               "terme (`T0` présent → `T2` retiré) : ce n'est donc pas l'effet de la "
+               "seule pondération, mais celui des signatures retenues dans leur "
+               "ensemble — poids et retrait du terme confondus. Les deux parts n'ont été "
+               "séparées qu'en validation croisée : le retrait du terme y vaut "
+               "+0,003 ± 0,011, sous son écart-type (`rapport_signatures_variantes.md` "
+               "§1), et les poids seuls, à référence `binaire · T2`, +0,030 ± 0,028 sur "
+               "3 graines et +0,028 sur 10 (`rapport_ponderation.md`).", ""]
     corps = []
     for rt in sorted(nouvelle["par_type"], key=lambda t: -nouvelle["par_type"][t]["f1"]):
         n, a = nouvelle["par_type"][rt], actuelle["par_type"][rt]

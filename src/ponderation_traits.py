@@ -343,7 +343,9 @@ def section_lecture(resultats, cache):
     meilleurs = [r for r in partiels if r["wilcoxon"]["p"] < 0.05 and r["moyenne"] > 0]
     pires = [r for r in partiels if r["wilcoxon"]["p"] < 0.05 and r["moyenne"] < 0]
     somme = sum(r["moyenne"] for r in partiels)
-    seuil_corrige = 0.05 / len(partiels)
+    # Quatre comparaisons à la référence : les trois pondérations partielles et « jdm ».
+    comparaisons = len(resultats) - 1
+    seuil_corrige = 0.05 / comparaisons
     lignes = ["## 5. Lecture", ""]
     if tout["wilcoxon"]["p"] < 0.05:
         lignes.append(f"- **Le gain des trois traits ensemble tient** : "
@@ -373,12 +375,14 @@ def section_lecture(resultats, cache):
                              f"(p = {valeur_p(r['wilcoxon']['p'])})" for r in meilleurs)
         survivants = [r for r in meilleurs if r["wilcoxon"]["p"] < seuil_corrige]
         lignes.append(
-            f"- **Un trait pondéré améliore le F1 seul, mais de très peu** : {gagnants}. "
+            f"- **Un trait pondéré a un gain NOMINAL seul, et minuscule** : {gagnants}. "
             f"Le détail des trois : {detail}. "
-            + ("Ce gain ne survit pas à une correction de multiplicité : avec quatre "
-               f"comparaisons, le seuil de Bonferroni est {fr(seuil_corrige, 4)}. "
+            + (f"Ce gain est NOMINAL : il ne survit pas à une correction de multiplicité, "
+               f"car avec {comparaisons} comparaisons à la même référence le seuil de "
+               f"Bonferroni est {fr(seuil_corrige, 4)}. "
                if not survivants else
-               "Ce gain survit à une correction de Bonferroni sur quatre comparaisons. ")
+               f"Ce gain survit à une correction de Bonferroni sur {comparaisons} "
+               f"comparaisons (seuil {fr(seuil_corrige, 4)}). ")
             + "Et un tel écart, de l'ordre du millième de F1, ne pèse rien devant celui "
             "des trois traits ensemble.")
     if pires:
