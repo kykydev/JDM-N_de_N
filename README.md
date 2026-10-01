@@ -187,12 +187,59 @@ data/resultats/           predictions_finales*.json, matrice_confusion_finale*.c
 Chaque étape écrit un rapport dans `reports/`. **Les rapports sont le produit principal
 du projet** : le code produit des chiffres, les rapports disent ce qu'ils signifient.
 
-`reports/archive/` garde les quatre rapports qu'aucun script ne régénère plus, parce
-qu'ils documentent des méthodes abandonnées : `rapport_grasp.md`,
-`rapport_classification.md` et `rapport_evaluation.md` pour l'apprentissage à seuil,
-`rapport_arbres.md` pour les arbres en union. Ils restent la source des F1 de 0,597 et
-0,585 que le tableau d'historique met en regard, et ne sont pas reproductibles en l'état :
-le code qui les écrivait a été retiré au commit `8bd078a`.
+## Les rapports, dans quel ordre les lire
+
+### À lire
+
+Cinq rapports suffisent à comprendre ce que fait le projet et ce qu'il vaut, dans cet
+ordre : le résultat, puis sa confiance, puis les choix qui y ont mené, puis la mécanique.
+
+| rapport | ce qu'on y trouve |
+|---|---|
+| [rapport_final_signatures.md](reports/rapport_final_signatures.md) | **Le résultat du projet** : F1 0,778 sur les 450 exemples de test, F1 par type en regard de l'article, matrice de confusion, et les 39 exemples corrigés contre 29 cassés par rapport aux signatures binaires. |
+| [rapport_ponderation.md](reports/rapport_ponderation.md) | Ce que vaut la pondération, trait par trait, sur dix graines et en test de Wilcoxon apparié : les trois traits ensemble gagnent +0,028, aucun ne gagne seul, et `TRT` seul dégrade. |
+| [rapport_grille.md](reports/rapport_grille.md) | Le choix de la méthode : 61 configurations (représentation × structure × classification) comparées en validation croisée, sans lire le test. C'est là que « somme · arbre · descente » est retenu. |
+| [methode_somme_arbre_descente.md](reports/methode_somme_arbre_descente.md) | La méthode retenue expliquée à la main, avec ses chiffres réels : les arbres sont des peignes, et descendre ne retire que quelques feuilles du profil du type. |
+| [methode_union_arbre_descente.md](reports/methode_union_arbre_descente.md) | La méthode écartée, et **pourquoi** : en union le cosinus pénalise un nœud pour sa seule taille, la descente part vers le plus petit enfant, et le F1 tombe à 0,219. |
+
+### Historique
+
+Les étapes antérieures, encore régénérables et toujours justes, mais qu'on ne lit que pour
+vérifier un chiffre ou comprendre une décision de construction.
+
+| étape | rapport | ce qu'on y trouve |
+|---|---|---|
+| corpus | [rapport_corpus.md](reports/rapport_corpus.md) | Contrôle des 15 fichiers du corpus : comptes, découpages A / de / B, déterminant et définitude, doublons signalés. |
+| corpus | [remplacements_proposes.csv](reports/remplacements_proposes.csv) | Les deux termes absents de JDM (« cacao de Côte », « diamants d'Afrique ») : des découpages concurrents que cette absence écarte, sans remplacement à faire. |
+| collecte | [rapport_sonde_jdm.md](reports/rapport_sonde_jdm.md) | La sonde de 30 termes qui a tout cadré avant la collecte : endpoints de l'API, coupure à 20 hyperonymes, les 15 types TRT non sémantiques à écarter. |
+| collecte | [rapport_collecte.md](reports/rapport_collecte.md) | La collecte des 1867 termes : volumes, latences, erreurs, et l'optimisation du payload de `/relations/to` (−82 % de volume à résultat identique). |
+| signatures | [rapport_signatures.md](reports/rapport_signatures.md) | Les signatures initiales, **binaires** : vocabulaire, tailles, symboles les plus fréquents, signatures quasi vides. |
+| signatures | [rapport_signatures_variantes.md](reports/rapport_signatures_variantes.md) | **Le choix des signatures retenues** : 27 configurations en validation croisée (hyperonymes, pondération, TRT/SST, symbole du terme), différences appariées, et le §3.1 sur la pondération trait par trait. |
+| arbres | [rapport_arbres_somme.md](reports/rapport_arbres_somme.md) | Les quinze arbres de la configuration retenue : construction, profondeurs, poids, et statistiques de la descente. |
+| évaluation | [rapport_final.md](reports/rapport_final.md) | La même évaluation de test avec les signatures **binaires** : F1 0,753, et l'analyse des 110 erreurs (polysémie, classe multiple). Dépassé par `rapport_final_signatures.md`, mais c'est lui qui porte l'analyse des causes d'erreur. |
+| diagnostics TRT | [diagnostic_trt.md](reports/diagnostic_trt.md) | Huit politiques de sélection du trait TRT mesurées : garder les types les plus fournis d'un terme échoue, filtrer sur la fréquence dans le corpus marche mieux. |
+| diagnostics TRT | [diagnostic_trt_tour2.md](reports/diagnostic_trt_tour2.md) | Le second tour : seuil, formulation, critère de fusion. Conclusion de méthode — les deux politiques se valent sur le F1, et deux tours avaient optimisé une métrique de substitution. |
+
+### Archive
+
+`reports/archive/` garde les quatre rapports qu'**aucun script ne régénère plus**, parce
+que le code qui les écrivait a été retiré au commit `8bd078a`. Ils restent la source des
+F1 de 0,597 et 0,585 que le tableau d'historique met en regard.
+
+| rapport | ce qu'on y trouve |
+|---|---|
+| [archive/rapport_grasp.md](reports/archive/rapport_grasp.md) | L'apprentissage par fusion à seuil (GRASP-it) : douze combinaisons, deux ordonnancements × six seuils, détection d'emballement. |
+| [archive/rapport_classification.md](reports/archive/rapport_classification.md) | Le choix du seuil de fusion et de la mesure de similarité : cosinus contre couverture contre Tversky, et la question de l'abstention. |
+| [archive/rapport_evaluation.md](reports/archive/rapport_evaluation.md) | L'évaluation de la méthode à seuil sur le test (F1 0,597) et les trois expériences de l'article. Les détecteurs de causes d'erreur viennent de là. |
+| [archive/rapport_arbres.md](reports/archive/rapport_arbres.md) | Les arbres en **union** et le plus proche voisin sur les feuilles (F1 0,585) : le biais de taille du cosinus sur ensembles, vu de l'intérieur. |
+
+### Deux annexes, qui ne se lisent pas seules
+
+`reports/rapport_grille_courbes.svg` est la figure de `rapport_grille.md`, régénérée avec
+lui par `grille.py`. `reports/phase1_payload.json` n'est pas un rapport mais la **donnée**
+que `jdm_collect.py` relit pour écrire le §1 de `rapport_collecte.md` : sans ce fichier, ce
+§1 se réduit à « _Mesures absentes_ », et le reconstituer demanderait de relancer la
+collecte. Ne pas le supprimer.
 
 ## Les modules
 
